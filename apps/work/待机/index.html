@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频全屏循环播放器</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #000; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* 播放中且鼠标静止时隐藏光标 */
+  body.hasVideo:not(.active) { cursor: none; }
+
+  #video {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: #000;
+    display: block;
+  }
+
+  /* ============ 选择文件界面 ============ */
+  #picker {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 38%, #1b1b26 0%, #000 72%);
+    transition: opacity .35s ease, visibility .35s;
+  }
+  #picker.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .card {
+    text-align: center;
+    padding: 44px 60px;
+    border-radius: 22px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.09);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 24px 70px rgba(0,0,0,.65);
+    animation: pop .35s ease;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+
+  .card .icon { font-size: 52px; line-height: 1; }
+  .card h1 { font-size: 22px; margin: 16px 0 8px; font-weight: 600; letter-spacing: .5px; }
+  .card p  { margin: 0 0 24px; color: #99a0ac; font-size: 14px; }
+
+  .btn {
+    border: none; border-radius: 999px;
+    padding: 13px 38px; font-size: 15px; font-weight: 600;
+    color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, #5b6cff, #9b5bff);
+    box-shadow: 0 10px 26px rgba(91,108,255,.45);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn:hover  { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(91,108,255,.6); }
+  .btn:active { transform: translateY(0) scale(.98); }
+
+  .tip { margin: 18px 0 0 !important; font-size: 12.5px; color: #6f7683 !important; }
+
+  /* ============ 居中提示（播放/暂停等） ============ */
+  #toast {
+    position: fixed; top: 50%; left: 50%; z-index: 30;
+    transform: translate(-50%,-50%) scale(.9);
+    padding: 16px 34px; border-radius: 14px;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(6px);
+    font-size: 19px; letter-spacing: 2px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* ============ 底部控制条 ============ */
+  #bar {
+    position: fixed; left: 50%; bottom: 26px; z-index: 20;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: rgba(18,18,22,.72);
+    border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(12px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+    white-space: nowrap;
+  }
+  body.active #bar { opacity: 1; pointer-events: auto; }
+
+  #bar button {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: rgba(255,255,255,.1);
+    color: #fff; font-size: 15px; line-height: 1;
+    display: grid; place-items: center;
+    transition: background .15s, transform .15s;
+  }
+  #bar button:hover { background: rgba(255,255,255,.26); transform: scale(1.07); }
+
+  .kbd {
+    font-size: 12px; color: #a7aeba;
+    margin-left: 6px; padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,.15);
+  }
+  @media (max-width: 640px) { .kbd { display: none; } }
+</style>
+</head>
+<body>
+
+  <video id="video" playsinline loop></video>
+
+  <!-- 选择文件界面 -->
+  <div id="picker">
+    <div class="card">
+      <div class="icon">🎬</div>
+      <h1>选择一个视频文件</h1>
+      <p>全屏播放 · 自动循环 · 空格键暂停/播放</p>
+      <button id="pickBtn" class="btn">选择视频</button>
+      <p class="tip">也可以直接把视频文件拖到窗口里</p>
+    </div>
+  </div>
+
+  <!-- 状态提示 -->
+  <div id="toast"></div>
+
+  <!-- 底部控制条 -->
+  <div id="bar">
+    <button id="playBtn" title="播放/暂停（空格）">▶</button>
+    <button id="fsBtn" title="全屏（F）">⛶</button>
+    <button id="openBtn" title="选择其他视频">📁</button>
+    <span class="kbd">空格 播放/暂停 · F 全屏 · M 静音</span>
+  </div>
+
+  <input type="file" id="file" accept="video/*" hidden>
+
+<script>
+(function () {
+  'use strict';
+
+  const video    = document.getElementById('video');
+  const fileInput= document.getElementById('file');
+  const picker   = document.getElementById('picker');
+  const toast    = document.getElementById('toast');
+  const playBtn  = document.getElementById('playBtn');
+  const fsBtn    = document.getElementById('fsBtn');
+
+  let objectUrl  = null;
+  let clickTimer = null;
+  let idleTimer  = null;
+  let toastTimer = null;
+
+  /* ---------------- 选择文件 ---------------- */
+
+  document.getElementById('pickBtn').addEventListener('click', () => fileInput.click());
+  document.getElementById('openBtn').addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (f) loadVideo(f);
+    fileInput.value = '';           // 允许重复选择同一个文件
+  });
+
+  /* ---------------- 加载并播放 ---------------- */
+
+  async function loadVideo(file) {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(file);
+
+    video.src = objectUrl;
+    video.loop = true;
+    video.currentTime = 0;
+
+    picker.classList.add('hide');
+    document.body.classList.add('hasVideo');
+
+    // 在用户手势的同步流程里请求全屏，成功率最高
+    enterFullscreen();
+
+    try {
+      await video.play();
+    } catch (err) {
+      // 自动播放被拦截 → 静音再试
+      video.muted = true;
+      try {
+        await video.play();
+        showToast('🔇 已静音播放（按 M 恢复声音）');
+      } catch (err2) {
+        showToast('点击画面开始播放');
+      }
+    }
+    updatePlayIcon();
+    poke();
+  }
+
+  /* ---------------- 播放 / 暂停 ---------------- */
+
+  function togglePlay() {
+    if (!video.src) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+      showToast('▶  播放');
+    } else {
+      video.pause();
+      showToast('⏸  暂停');
+    }
+    updatePlayIcon();
+  }
+
+  function updatePlayIcon() {
+    playBtn.textContent = video.paused ? '▶' : '❚❚';
+  }
+
+  video.addEventListener('play',  updatePlayIcon);
+  video.addEventListener('pause', updatePlayIcon);
+
+  playBtn.addEventListener('click', () => { togglePlay(); playBtn.blur(); });
+
+  /* ---------------- 全屏 ---------------- */
+
+  function enterFullscreen() {
+    const el = document.documentElement;
+    let r = null;
+    if (el.requestFullscreen)            r = el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) r = el.webkitRequestFullscreen();
+    if (r && typeof r.catch === 'function') r.catch(() => {});
+  }
+
+  function exitFullscreen() {
+    let r = null;
+    if (document.exitFullscreen)            r = document.exitFullscreen();
+    else if (document.webkitExitFullscreen) r = document.webkitExitFullscreen();
+    if (r && typeof r.catch === 'function') r.catch(() => {});
+  }
+
+  function toggleFullscreen() {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    fsEl ? exitFullscreen() : enterFullscreen();
+  }
+
+  fsBtn.addEventListener('click', () => { toggleFullscreen(); fsBtn.blur(); });
+
+  function updateFsIcon() {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    fsBtn.textContent = isFs ? '⤡' : '⛶';
+    fsBtn.title = isFs ? '退出全屏（F）' : '全屏（F）';
+  }
+  document.addEventListener('fullscreenchange', updateFsIcon);
+  document.addEventListener('webkitfullscreenchange', updateFsIcon);
+
+  /* ---------------- 键盘快捷键 ---------------- */
+
+  document.addEventListener('keydown', (e) => {
+    // 先把焦点从按钮上移开，避免空格同时触发按钮
+    if (e.code === 'Space' || e.code === 'KeyF' || e.code === 'KeyM') {
+      const el = document.activeElement;
+      if (el && el !== document.body && typeof el.blur === 'function') el.blur();
+    }
+
+    switch (e.code) {
+      case 'Space':
+        e.preventDefault();
+        togglePlay();
+        break;
+
+      case 'KeyF':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+
+      case 'KeyM':
+        e.preventDefault();
+        if (!video.src) return;
+        video.muted = !video.muted;
+        showToast(video.muted ? '🔇 已静音' : '🔊 声音开启');
+        break;
+
+      case 'ArrowLeft':
+        if (!video.src) return;
+        video.currentTime = Math.max(0, video.currentTime - 5);
+        showToast('⏪  后退 5 秒');
+        break;
+
+      case 'ArrowRight':
+        if (!video.src) return;
+        video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
+        showToast('⏩  前进 5 秒');
+        break;
+    }
+  });
+
+  /* ---------------- 鼠标点击 / 双击 ---------------- */
+
+  video.addEventListener('click', () => {
+    if (clickTimer) return;                     // 第二次点击交给 dblclick
+    clickTimer = setTimeout(() => {
+      clickTimer = null;
+      togglePlay();
+    }, 230);
+  });
+
+  video.addEventListener('dblclick', () => {
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+    toggleFullscreen();
+  });
+
+  /* ---------------- 鼠标空闲隐藏光标 / 控制条 ---------------- */
+
+  function poke() {
+    document.body.classList.add('active');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => document.body.classList.remove('active'), 2600);
+  }
+
+  ['mousemove', 'mousedown', 'touchstart', 'wheel'].forEach(evt =>
+    document.addEventListener(evt, poke, { passive: true })
+  );
+
+  /* ---------------- 拖拽打开 ---------------- */
+
+  ['dragenter', 'dragover'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault())
+  );
+
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    if (f.type.startsWith('video/') || /\.(mp4|webm|mkv|mov|avi|m4v|ogv|flv|wmv)$/i.test(f.name)) {
+      loadVideo(f);
+    } else {
+      showToast('请拖入视频文件');
+    }
+  });
+
+  /* ---------------- 提示条 ---------------- */
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 900);
+  }
+
+  /* ---------------- 错误处理 ---------------- */
+
+  video.addEventListener('error', () => {
+    if (!video.src) return;
+    showToast('⚠️ 无法播放该视频文件');
+  });
+
+  /* ---------------- 初始化 ---------------- */
+
+  updatePlayIcon();
+  updateFsIcon();
+  poke();
+
+})();
+</script>
+</body>
+</html>

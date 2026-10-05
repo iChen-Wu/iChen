@@ -1,0 +1,55 @@
+# ============================================================
+# Qxia 配置文件模板
+# 填写说明：
+#   - 所有字段均有示例值，按需修改即可；标【必填】的字段请务必确认。
+#   - 顶格写注释（#）不会影响解析；YAML 缩进请用 2 个空格。
+# ============================================================
+
+# ---------------- 连接配置 ----------------
+# 每个连接有一个名字和类型；类型决定适配函数（见 Qxia/core/connection_manager.py）。
+# 需要多个连接时，按同样格式追加即可。
+connections:
+  wyuan:
+    type: "wyuan"                        # 连接类型，固定为 "wyuan"
+    servers: "nats://127.0.0.1:4222"     # 【必填】NATS 服务器地址（WYuan 服务所在）
+    user_id: "千夏"                      # 【必填】本客户端在 WYuan 中的用户标识
+    token: ""                            # 【选填】WYuan 鉴权 token（服务端要求时才填）
+    debug: True                         # 【选填】是否输出 WYuan SDK 调试日志
+
+  # 微信连接（WeixinBot：WeixinBot() → login() → _run_loop()，见 experiments/c_done/test_we-WYuan.py）
+  # 依赖 weixin_bot 库；库缺失或启动失败时自动跳过（不影响 WYuan 连接），日志会提示原因
+  wx_clawbot:
+    type: "wx_clawbot"
+    # WeixinBot 无需额外参数（如需自定义，按 weixin_bot 库 README 填写）
+
+# ---------------- LLM 配置 ----------------
+# 由 GYun.LLM 使用：model 指定默认模型，其余字段会作为 kwargs 传给 async_chat。
+llm:
+  model: "VC/doubao"             # 【必填】默认模型名（需在 GYun.LLM 模型注册表中存在）
+  # temperature: 0.9                     # 【选填】采样温度 0~2
+  # top_p: 0.95                          # 【选填】核采样概率
+  # frequency_penalty: 0.5               # 【选填】频率惩罚
+  # presence_penalty: 0.0                # 【选填】存在惩罚
+  # max_tokens: 5000                      # 【选填】最大生成 token 数
+  # stream: false                        # 【选填】流式输出（初版未接流式，保持 false）
+
+# ---------------- 聊天上下文 ----------------
+chat:
+  history_max_messages: 0                # 拼接给 LLM 的历史消息条数上限（0 = 不限）
+  tool_max_steps: 20                       # 工具调用闭环的最大轮数（防止死循环）
+  # 系统提示词：引导模型利用对话历史。GLM-4-9B 等小模型被问"能看到上一句话吗？"时
+  # 容易误答"我没有记忆"，加上该提示可显著改善；不需要可改为空字符串 ""
+  system_prompt: ""
+
+# ---------------- 插件 ----------------
+plugins:
+  dir: "src/Qxia/plugins"                # 插件目录（相对项目根目录，或写绝对路径）
+
+# ---------------- 日志 ----------------
+logs:
+  file: "logs/framework.log"             # 日志文件路径（目录不存在会自动创建）
+  level: "DEBUG"                          # 日志级别：DEBUG / INFO / WARNING / ERROR
+
+# ---------------- GYun 数据中枢 ----------------
+gyun:
+  source: "Qxia"                         # 应用隔离标识；KV 数据实体将写入该 source 下

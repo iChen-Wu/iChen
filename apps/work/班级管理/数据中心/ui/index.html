@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据中心 - byu.datacenter</title>
+<style>
+  /* 主题令牌（独立模式兜底；嵌入模式由总台注入 shared/css 覆盖）*/
+  :root { --app-bg:#eef4fd; --app-bg2:#f2f4f8; --app-fg:#0b1120; --app-card:#ffffff; --app-muted:#8a95ad; --app-border:rgba(0,0,0,.06); --app-input:#fbfcfe; }
+  html[data-theme="dark"] { color-scheme: dark; --app-bg:#16202f; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; }
+  @media (prefers-color-scheme: dark) { html[data-theme="system"] { color-scheme: dark; --app-bg:#16202f; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; } }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--app-bg2, #f2f4f8); color: var(--app-fg, #0b1120); }
+  .wrap { max-width: 1000px; margin: 0 auto; width: 100%; flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { font-size: 12px; color: var(--app-muted, #8a95ad); margin: 0 0 14px; }
+  .card { background: var(--app-card, #fff); border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 12px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 104px; background: var(--app-bg, #eef4fd); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; color: #2563eb; }
+  .stat span { font-size: 12px; color: var(--app-muted, #4b556b); }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--app-border, #eef1f6); vertical-align: middle; }
+  th { color: var(--app-muted, #8a95ad); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  tr:hover td { background: var(--app-input, #f8fafd); }
+  button { border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: var(--app-bg, #e8edf5); color: var(--app-fg, #1f2a44); }
+  button.primary { background: #3b82f6; color: #fff; }
+  button.danger { background: #fee2e2; color: #b91c1c; }
+  button.small { padding: 3px 9px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input, select, textarea { padding: 6px 8px; border: 1px solid var(--app-border, #dfe5ee); border-radius: 8px; font-size: 13px; background: var(--app-input, #fbfcfe); color: inherit; font-family: inherit; }
+  input[type="checkbox"] { width: 14px; height: 14px; }
+  .tags { font-size: 12px; color: var(--app-muted, #8a95ad); }
+  .msg { font-size: 12px; margin-top: 8px; min-height: 16px; white-space: pre-wrap; }
+  .msg.ok { color: #059669; } .msg.err { color: #dc2626; }
+  .empty { color: var(--app-muted, #8a95ad); text-align: center; padding: 22px 0; font-size: 13px; }
+  .tag { font-size: 12px; color: var(--app-muted, #8a95ad); }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .form textarea { grid-column: 1 / -1; min-height: 56px; resize: vertical; }
+  .hidden { display: none !important; }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; font-size: 12px; color: var(--app-muted, #8a95ad); }
+  /* 详情/编辑抽屉 */
+  .drawer { position: fixed; top: 0; right: 0; width: min(520px, 92vw); height: 100vh; background: var(--app-card, #fff); box-shadow: -8px 0 24px rgba(0,0,0,.14); padding: 16px; overflow-y: auto; }
+  .drawer h2 { font-size: 15px; margin: 0 0 10px; }
+  .kv { font-size: 12px; color: var(--app-muted, #8a95ad); word-break: break-all; margin-bottom: 8px; }
+  label.f { display: block; font-size: 12px; color: var(--app-muted, #8a95ad); margin: 8px 0 3px; }
+  label.f input, label.f textarea { width: 100%; }
+  pre { background: var(--app-input, #f8fafd); border-radius: 8px; padding: 8px 10px; font-size: 12px; overflow: auto; max-height: 220px; margin: 4px 0 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>数据中心</h1>
+    <p class="sub">班级数据总控 · byu.datacenter（BYu class_manager/datacenter 外壳化 App）</p>
+
+    <div class="card">
+      <div class="bar">
+        <strong>数据概览</strong>
+        <div class="row">
+          <button id="btn-types-toggle" type="button">类型白名单</button>
+          <button id="btn-refresh" class="primary" type="button">刷新</button>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div id="types-panel" class="hidden" style="margin-top:10px;">
+        <div class="row">
+          <input id="f-new-type" placeholder="新增类型名（如 song）" />
+          <button id="btn-add-type" type="button">加入白名单</button>
+        </div>
+        <div id="types-list" class="tags" style="margin-top:8px;"></div>
+      </div>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <div class="row">
+          <select id="f-type"><option value="">全部类型</option></select>
+          <input id="f-keyword" placeholder="标题关键词 / 搜索" style="width:180px;" />
+          <button id="btn-search" type="button">搜索</button>
+          <button id="btn-clear-search" type="button">重置</button>
+        </div>
+        <div class="row">
+          <button id="btn-add-toggle" class="primary" type="button">新增记录</button>
+        </div>
+      </div>
+
+      <div id="add-panel" class="card hidden" style="background: var(--app-input, #fbfcfe);">
+        <div class="form">
+          <input id="f-add-type" placeholder="type（如 person）" />
+          <input id="f-add-title" placeholder="title（必填）" />
+          <input id="f-add-tags" placeholder="tags（逗号分隔，可空）" />
+          <textarea id="f-add-content" placeholder="content（可空）"></textarea>
+          <textarea id="f-add-extra" placeholder='extra（JSON，可空，如 {"name":"张三","pinyin":"ZS"}'></textarea>
+        </div>
+        <div class="bar" style="margin:8px 0 0;">
+          <span class="tag">类型不在白名单时会自动加入</span>
+          <button id="btn-create" class="primary" type="button">创建</button>
+        </div>
+      </div>
+
+      <div class="row" id="batch-bar" style="margin-bottom:6px;">
+        <span class="tag" id="sel-info">已选 0 条</span>
+        <input id="f-batch-tags" placeholder="标签（逗号分隔）" style="width:180px;" />
+        <select id="f-batch-mode">
+          <option value="append">追加标签</option>
+          <option value="overwrite">覆盖标签</option>
+          <option value="remove">移除标签</option>
+        </select>
+        <button id="btn-batch-tags" class="small" type="button">批量改标签</button>
+        <button id="btn-batch-del" class="small danger" type="button">批量删除</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28px;"><input type="checkbox" id="chk-all" /></th>
+            <th>标题</th><th>类型</th><th>标签</th><th>创建时间</th><th style="width:130px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty">暂无数据</div>
+      <div class="pager">
+        <span id="page-info">-</span>
+        <button id="btn-prev" class="small" type="button">上一页</button>
+        <button id="btn-next" class="small" type="button">下一页</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情 / 编辑抽屉 -->
+  <div id="drawer" class="drawer hidden">
+    <div class="bar">
+      <h2 id="d-title">记录详情</h2>
+      <button id="btn-d-close" class="small" type="button">关闭</button>
+    </div>
+    <div class="kv" id="d-id"></div>
+    <label class="f">title<input id="d-f-title" /></label>
+    <label class="f">content<textarea id="d-f-content"></textarea></label>
+    <label class="f">tags（逗号分隔）<input id="d-f-tags" /></label>
+    <label class="f">extra（JSON）<textarea id="d-f-extra" style="min-height:120px;"></textarea></label>
+    <div class="row" style="margin-top:10px;">
+      <button id="btn-d-save" class="primary" type="button">保存修改</button>
+      <button id="btn-d-del" class="danger" type="button">删除这条</button>
+    </div>
+    <div class="msg" id="d-msg"></div>
+    <div class="kv" id="d-meta"></div>
+  </div>
+
+<script>
+  /* 主题联动（接入规范第八节 6）：总台下传 data-theme；独立模式默认跟随系统 */
+  (function () {
+    function applyFrameTheme(t) { if (t) document.documentElement.dataset.theme = t; }
+    if (!document.documentElement.dataset.theme) document.documentElement.dataset.theme = "system";
+    window.addEventListener("message", (e) => {
+      const m = e.data;
+      if (m && (m.type === "ichen:theme" || m.type === "ichen:css") && m.theme) applyFrameTheme(m.theme);
+    });
+  })();
+
+(function () {
+  const APP = "byu.datacenter";
+  const $ = (id) => document.getElementById(id);
+  const PAGE_SIZE = 20;
+
+  // 嵌入模式：接收父框架注入的 shared 样式（接入规范五.2）
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:css" && m.css) {
+      const s = document.createElement("style");
+      s.textContent = m.css;
+      document.head.appendChild(s);
+    }
+  });
+
+  // 桥握手：父挂载后补发 ich:bridge → 进入嵌入模式并刷新
+  let bridged = window.parent !== window && window.parent.__ICHEN_BRIDGE__ === true;
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:bridge" && !bridged) { bridged = true; refresh(); }
+  });
+
+  /* ---------- 独立模式演示数据（脱离前端也能看） ---------- */
+  const DEMO = {
+    stats: { person: 61, points_record: 128, points_edit: 12, total: 201, allowed_count: 3 },
+    types: ["person", "points_record", "points_edit"],
+    items: [
+      { entity_id: "demo-1", type: "person", title: "田钊智", tags: [], created_at: "2026-08-01" },
+      { entity_id: "demo-2", type: "points_record", title: "早读迟到", tags: ["待校验"], created_at: "2026-08-07" },
+      { entity_id: "demo-3", type: "points_edit", title: "A 积极", tags: [], created_at: "2026-08-12" },
+    ],
+  };
+
+  const state = { page: 1, total: 0, items: [], selected: new Set(), current: null };
+
+  function say(text, ok) {
+    const el = $("msg");
+    el.textContent = text || "";
+    el.className = "msg " + (ok === false ? "err" : "ok");
+  }
+  function esc(t) { return (t === null || t === undefined) ? "" : String(t); }
+  function fmtTime(t) {
+    if (!t) return "-";
+    const s = String(t);
+    return s.length > 16 ? s.slice(0, 16).replace("T", " ") : s;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function renderStats(stats) {
+    const box = $("stats");
+    box.innerHTML = "";
+    const entries = Object.keys(stats || {}).filter((k) => k !== "allowed_count" && k !== "total");
+    const cards = [["total", "全部记录"]].concat(entries.map((k) => [k, k]));
+    cards.forEach(([key, label]) => {
+      const d = document.createElement("div"); d.className = "stat";
+      const b = document.createElement("b"); b.textContent = esc(stats[key] || 0);
+      const s = document.createElement("span"); s.textContent = label;
+      d.appendChild(b); d.appendChild(s); box.appendChild(d);
+    });
+  }
+
+  function renderTypeOptions(types) {
+    const sel = $("f-type");
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">全部类型</option>';
+    (types || []).forEach((t) => {
+      const o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o);
+    });
+    sel.value = keep;
+    const list = $("types-list");
+    list.textContent = (types || []).length ? "白名单：" + types.join(" / ") : "（白名单为空）";
+  }
+
+  function renderTable(data) {
+    const items = (data && data.items) || [];
+    state.items = items;
+    state.total = (data && data.total) || 0;
+    state.selected.clear();
+    const tbody = $("tbody");
+    tbody.innerHTML = "";
+    $("empty").style.display = items.length ? "none" : "";
+
+    items.forEach((it) => {
+      const tr = document.createElement("tr");
+      const tdChk = document.createElement("td");
+      const chk = document.createElement("input"); chk.type = "checkbox"; chk.dataset.id = it.entity_id || "";
+      chk.onchange = () => {
+        if (chk.checked) state.selected.add(chk.dataset.id); else state.selected.delete(chk.dataset.id);
+        updateSelInfo();
+      };
+      tdChk.appendChild(chk); tr.appendChild(tdChk);
+
+      const cells = [it.title, it.type, (it.tags || []).join(", "), fmtTime(it.created_at)];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        td.textContent = esc(c) || "-";
+        if (i === 1) td.className = "tag";
+        if (i === 2) td.className = "tags";
+        tr.appendChild(td);
+      });
+
+      const tdOps = document.createElement("td");
+      const bView = document.createElement("button"); bView.className = "small"; bView.textContent = "查看";
+      bView.onclick = () => openDetail(it.entity_id);
+      const bDel = document.createElement("button"); bDel.className = "small danger"; bDel.textContent = "删除";
+      bDel.onclick = () => {
+        if (!confirm("删除这条记录？（硬删除，不可恢复）")) return;
+        call("delete", { entity_id: it.entity_id });
+      };
+      tdOps.appendChild(bView); tdOps.appendChild(bDel); tr.appendChild(tdOps);
+      tbody.appendChild(tr);
+    });
+
+    $("chk-all").checked = false;
+    updateSelInfo();
+    const pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
+    $("page-info").textContent = `第 ${state.page} / ${pages} 页 · 共 ${state.total} 条`;
+    $("btn-prev").disabled = state.page <= 1;
+    $("btn-next").disabled = state.page >= pages;
+  }
+
+  function updateSelInfo() {
+    $("sel-info").textContent = `已选 ${state.selected.size} 条`;
+  }
+
+  /* ---------- 详情抽屉 ---------- */
+  function openDetail(entityId) {
+    if (!bridged) { say("独立演示模式：详情只读，接入前端后可用", false); return; }
+    call("view", { entity_id: entityId });
+  }
+  function fillDetail(e) {
+    state.current = e;
+    $("drawer").classList.remove("hidden");
+    $("d-title").textContent = esc(e.title) || "记录详情";
+    $("d-id").textContent = `entity_id: ${esc(e.entity_id)}　type: ${esc(e.type)}`;
+    $("d-f-title").value = esc(e.title);
+    $("d-f-content").value = esc(e.content);
+    $("d-f-tags").value = (e.tags || []).join(", ");
+    $("d-f-extra").value = JSON.stringify(e.extra || {}, null, 2);
+    $("d-msg").textContent = "";
+    $("d-meta").textContent = `created_at: ${esc(e.created_at)}　updated_at: ${esc(e.updated_at)}`;
+  }
+
+  /* ---------- 调用（嵌入→postMessage；独立→演示） ---------- */
+  function call(action, payload) {
+    if (!bridged) { say("独立演示模式：只读演示数据，接入前端后即可真实读写", false); return; }
+    window.parent.postMessage({ app: APP, action: action, payload: payload || {} }, "*");
+  }
+
+  function refresh() {
+    if (!bridged) {
+      renderStats(DEMO.stats); renderTypeOptions(DEMO.types);
+      renderTable({ items: DEMO.items, total: DEMO.items.length });
+      say("独立演示模式：以下为只读演示数据", true);
+      return;
+    }
+    call("stats", {}); call("types", {}); call("list", { page: state.page, page_size: PAGE_SIZE });
+  }
+
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (!m || m.app !== APP) return;
+    if (m.ok === false) { say(m.error || m.message || "操作失败", false); return; }
+
+    switch (m.action) {
+      case "stats": renderStats(m.data || {}); break;
+      case "types": renderTypeOptions((m.data || {}).allowed || []); break;
+      case "list": renderTable(m.data || {}); say(m.message || "已刷新", true); break;
+      case "search": renderTable({ items: (m.data || {}).items || [], total: (m.data || {}).total || 0 }); say(m.message || "搜索完成", true); break;
+      case "view": fillDetail(m.data || {}); break;
+      default:
+        say(m.message || "完成", m.ok !== false);
+        call("stats", {}); call("list", { page: state.page, page_size: PAGE_SIZE });
+        if (state.current) call("view", { entity_id: state.current.entity_id });
+    }
+  });
+
+  /* ---------- 事件 ---------- */
+  $("btn-refresh").addEventListener("click", refresh);
+  $("btn-prev").addEventListener("click", () => { if (state.page > 1) { state.page--; call("list", { page: state.page, page_size: PAGE_SIZE }); } });
+  $("btn-next").addEventListener("click", () => { state.page++; call("list", { page: state.page, page_size: PAGE_SIZE }); });
+
+  $("btn-search").addEventListener("click", () => {
+    const type = $("f-type").value, kw = $("f-keyword").value.trim();
+    if (!type && !kw) { refresh(); return; }
+    call("search", { type: type, keyword: kw || undefined, limit: 200 });
+  });
+  $("btn-clear-search").addEventListener("click", () => {
+    $("f-keyword").value = ""; $("f-type").value = ""; state.page = 1; refresh();
+  });
+  $("f-type").addEventListener("change", () => { state.page = 1; call("list", { page: 1, page_size: PAGE_SIZE, type: $("f-type").value }); });
+
+  $("btn-add-toggle").addEventListener("click", () => $("add-panel").classList.toggle("hidden"));
+  $("btn-types-toggle").addEventListener("click", () => $("types-panel").classList.toggle("hidden"));
+  $("btn-add-type").addEventListener("click", () => {
+    const t = $("f-new-type").value.trim();
+    if (!t) { say("请填类型名", false); return; }
+    call("add_type", { type_name: t });
+    $("f-new-type").value = "";
+  });
+
+  $("btn-create").addEventListener("click", () => {
+    const type = $("f-add-type").value.trim(), title = $("f-add-title").value.trim();
+    if (!type || !title) { say("type 与 title 必填", false); return; }
+    call("create", {
+      type: type, title: title,
+      content: $("f-add-content").value,
+      tags: $("f-add-tags").value,
+      extra: $("f-add-extra").value.trim(),
+    });
+  });
+
+  $("chk-all").addEventListener("change", (e) => {
+    const on = e.target.checked;
+    state.selected.clear();
+    document.querySelectorAll("#tbody input[type=checkbox]").forEach((c) => {
+      c.checked = on;
+      if (on) state.selected.add(c.dataset.id);
+    });
+    updateSelInfo();
+  });
+
+  $("btn-batch-del").addEventListener("click", () => {
+    if (!state.selected.size) { say("先勾选记录", false); return; }
+    if (!confirm(`批量删除 ${state.selected.size} 条？（硬删除，不可恢复）`)) return;
+    call("batch_delete", { entity_ids: Array.from(state.selected) });
+  });
+  $("btn-batch-tags").addEventListener("click", () => {
+    if (!state.selected.size) { say("先勾选记录", false); return; }
+    const tags = $("f-batch-tags").value.trim();
+    if (!tags) { say("请填标签（逗号分隔）", false); return; }
+    call("batch_tags", { entity_ids: Array.from(state.selected), tags: tags, mode: $("f-batch-mode").value });
+  });
+
+  $("btn-d-close").addEventListener("click", () => { $("drawer").classList.add("hidden"); state.current = null; });
+  $("btn-d-save").addEventListener("click", () => {
+    if (!state.current) return;
+    const extraText = $("d-f-extra").value.trim();
+    let extra = {};
+    try { extra = extraText ? JSON.parse(extraText) : {}; }
+    catch (err) { $("d-msg").className = "msg err"; $("d-msg").textContent = "extra 不是合法 JSON：" + err.message; return; }
+    call("update", {
+      entity_id: state.current.entity_id,
+      title: $("d-f-title").value,
+      content: $("d-f-content").value,
+      tags: $("d-f-tags").value,
+      extra: extra,
+    });
+  });
+  $("btn-d-del").addEventListener("click", () => {
+    if (!state.current) return;
+    if (!confirm("删除这条记录？（硬删除，不可恢复）")) return;
+    call("delete", { entity_id: state.current.entity_id });
+    $("drawer").classList.add("hidden"); state.current = null;
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>

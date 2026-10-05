@@ -1,0 +1,11 @@
+{
+  "name": "数据中心",
+  "id": "byu.datacenter",
+  "version": "0.1.0",
+  "description": "班级数据总控：学生总表 / 积分记录 / 编辑请求的浏览、搜索、增删改（class_manager/datacenter 外壳化）",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "order": 2,
+  "autostart": false
+}

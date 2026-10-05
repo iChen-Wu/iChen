@@ -1,0 +1,11 @@
+{
+  "name": "歌曲管理",
+  "id": "byu.song",
+  "version": "0.1.0",
+  "description": "班级歌单管理：查看 / 添加 / 权重 / 统计（class_manager/song 外壳化）",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "order": 1,
+  "autostart": false
+}

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>积分管理 - byu.points</title>
+<style>
+  /* 主题令牌（独立模式兜底；嵌入模式由总台注入 shared/css 覆盖）*/
+  :root { --app-bg:#eef4fd; --app-bg2:#f2f4f8; --app-fg:#0b1120; --app-card:#ffffff; --app-muted:#8a95ad; --app-border:rgba(0,0,0,.06); --app-input:#fbfcfe; }
+  html[data-theme="dark"] { color-scheme: dark; --app-bg:#16202f; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; }
+  @media (prefers-color-scheme: dark) { html[data-theme="system"] { color-scheme: dark; --app-bg:#16202f; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; } }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--app-bg2, #f2f4f8); color: var(--app-fg, #0b1120); }
+  .wrap { max-width: 1040px; margin: 0 auto; width: 100%; flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { font-size: 12px; color: var(--app-muted, #8a95ad); margin: 0 0 14px; }
+  .card { background: var(--app-card, #fff); border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 12px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 92px; background: var(--app-bg, #eef4fd); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; color: #2563eb; }
+  .stat span { font-size: 12px; color: var(--app-muted, #4b556b); }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--app-border, #eef1f6); vertical-align: top; }
+  th { color: var(--app-muted, #8a95ad); font-weight: 500; font-size: 12px; white-space: nowrap; }
+  tr:hover td { background: var(--app-input, #f8fafd); }
+  button { border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: var(--app-bg, #e8edf5); color: var(--app-fg, #1f2a44); }
+  button.primary { background: #3b82f6; color: #fff; }
+  button.ok { background: #10b981; color: #fff; }
+  button.danger { background: #fee2e2; color: #b91c1c; }
+  button.small { padding: 3px 9px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input, select, textarea { padding: 6px 8px; border: 1px solid var(--app-border, #dfe5ee); border-radius: 8px; font-size: 13px; background: var(--app-input, #fbfcfe); color: inherit; font-family: inherit; }
+  textarea { width: 100%; min-height: 84px; resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+  .msg { font-size: 12px; margin-top: 8px; min-height: 16px; white-space: pre-wrap; }
+  .msg.ok { color: #059669; } .msg.err { color: #dc2626; }
+  .empty { color: var(--app-muted, #8a95ad); text-align: center; padding: 18px 0; font-size: 13px; }
+  .tag { font-size: 12px; color: var(--app-muted, #8a95ad); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--app-bg, #eef4fd); color: var(--app-muted, #4b556b); }
+  .err { color: #dc2626; font-size: 12px; }
+  .hidden { display: none !important; }
+  .drawer { position: fixed; top: 0; right: 0; width: min(520px, 92vw); height: 100vh; background: var(--app-card, #fff); box-shadow: -8px 0 24px rgba(0,0,0,.14); padding: 16px; overflow-y: auto; }
+  .drawer h2 { font-size: 15px; margin: 0 0 10px; }
+  .kv { font-size: 12px; color: var(--app-muted, #8a95ad); word-break: break-all; margin-bottom: 8px; }
+  label.f { display: block; font-size: 12px; color: var(--app-muted, #8a95ad); margin: 8px 0 3px; }
+  label.f input { width: 100%; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>积分管理</h1>
+    <p class="sub">班务日志识别 → 校验 → 应用编辑 → 匹配 → 上传 · byu.points（BYu class_manager/points 外壳化 App）</p>
+
+    <div class="card">
+      <div class="bar">
+        <strong>库中状态</strong>
+        <div class="row">
+          <button id="btn-stats" type="button">上传后统计</button>
+          <button id="btn-refresh" class="primary" type="button">刷新</button>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="row" style="margin-top:10px;">
+        <span class="tag">流程：</span>
+        <button id="btn-validate" type="button">① 校验</button>
+        <button id="btn-pipeline" class="ok" type="button">② 应用并预览</button>
+        <button id="btn-upload" class="primary" type="button">③ 上传积分</button>
+        <span class="tag">（中断后随时可从库恢复继续）</span>
+      </div>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <strong>导入</strong>
+        <div class="row">
+          <button id="btn-rec-log" class="primary" type="button">识别班务日志图片</button>
+          <button id="btn-rec-edit" class="primary" type="button">识别修改单图片</button>
+          <button id="btn-json-toggle" type="button">粘贴 JSON</button>
+        </div>
+      </div>
+      <div id="json-panel" class="hidden">
+        <textarea id="f-json" placeholder='粘贴班务日志 JSON（列表或 {"data": [...]}）'></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="btn-import-json" type="button">导入并落库</button>
+          <span class="tag">与「识别图片」等价，只是数据来源换成手写 JSON</span>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span class="tag">识别类型：</span>
+        <input id="f-rec-type" value="班务日志" style="width:140px;" />
+        <span class="tag">（图片走系统文件对话框选路径，由框架转发）</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <strong>积分记录</strong>
+        <div class="row">
+          <select id="f-rec-status">
+            <option value="pending_review" selected>待纠错</option>
+            <option value="pending_match">待匹配</option>
+            <option value="matched">待上传</option>
+            <option value="uploaded">已上传</option>
+            <option value="cancelled">已取消</option>
+            <option value="">全部</option>
+          </select>
+          <button id="btn-reload-rec" class="small" type="button">加载</button>
+          <button id="btn-del-selected" class="danger small" type="button" disabled>删除选中</button>
+          <span class="tag" id="sel-count"></span>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th style="width:34px;"><input type="checkbox" id="chk-rec-all" title="全选/取消全选" /></th><th style="width:110px;">ID</th><th>事件</th><th>人员</th><th style="width:56px;">分数</th><th style="width:76px;">状态</th><th>错误</th><th style="width:120px;">操作</th></tr></thead>
+        <tbody id="tbody-rec"></tbody>
+      </table>
+      <div id="empty-rec" class="empty">该状态下没有记录</div>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <strong>编辑请求</strong>
+        <div class="row">
+          <select id="f-edit-status">
+            <option value="pending_review" selected>待纠错</option>
+            <option value="approved">待应用</option>
+            <option value="applied">已应用</option>
+            <option value="cancelled">已取消</option>
+            <option value="">全部</option>
+          </select>
+          <button id="btn-reload-edit" class="small" type="button">加载</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th style="width:110px;">ID</th><th>操作</th><th>内容</th><th>人员</th><th style="width:76px;">状态</th><th>错误</th><th style="width:120px;">操作</th></tr></thead>
+        <tbody id="tbody-edit"></tbody>
+      </table>
+      <div id="empty-edit" class="empty">该状态下没有编辑请求</div>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <strong>危险操作</strong>
+        <span class="tag">清空库中全部积分记录与编辑请求（不可恢复）</span>
+      </div>
+      <button id="btn-reset" class="danger" type="button">清空所有积分数据</button>
+    </div>
+  </div>
+
+  <!-- 纠错抽屉 -->
+  <div id="drawer" class="drawer hidden">
+    <div class="bar">
+      <h2 id="d-title">纠错</h2>
+      <button id="btn-d-close" class="small" type="button">关闭</button>
+    </div>
+    <div class="kv" id="d-id"></div>
+    <div id="d-body"></div>
+    <div class="row" style="margin-top:10px;">
+      <button id="btn-d-save" class="primary" type="button">保存修正</button>
+      <button id="btn-d-cancel" class="danger" type="button">取消这一条</button>
+    </div>
+    <div class="msg" id="d-msg"></div>
+  </div>
+
+<script>
+  /* 主题联动（接入规范第八节 6） */
+  (function () {
+    function applyFrameTheme(t) { if (t) document.documentElement.dataset.theme = t; }
+    if (!document.documentElement.dataset.theme) document.documentElement.dataset.theme = "system";
+    window.addEventListener("message", (e) => {
+      const m = e.data;
+      if (m && (m.type === "ichen:theme" || m.type === "ichen:css") && m.theme) applyFrameTheme(m.theme);
+    });
+  })();
+
+(function () {
+  const APP = "byu.points";
+  const $ = (id) => document.getElementById(id);
+
+  const STATUS_TEXT = {
+    pending_review: "待纠错", pending_match: "待匹配", matched: "待上传",
+    uploaded: "已上传", cancelled: "已取消", approved: "待应用", applied: "已应用",
+  };
+
+  // 嵌入模式：接收父框架注入的 shared 样式
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:css" && m.css) {
+      const s = document.createElement("style");
+      s.textContent = m.css;
+      document.head.appendChild(s);
+    }
+  });
+
+  let bridged = window.parent !== window && window.parent.__ICHEN_BRIDGE__ === true;
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:bridge" && !bridged) { bridged = true; refresh(); }
+  });
+
+  /* ---------- 独立模式演示数据 ---------- */
+  const DEMO = {
+    status: { pending_review: 2, pending_match: 1, matched: 3, uploaded: 12, total: 18 },
+    records: [
+      { entity_id: "d1", id: "2026080701", event: "早读迟到", persons: ["ZBY", "WGF"], score: -1, status: "pending_review", error: { type: "invalid_event" } },
+      { entity_id: "d2", id: "2026080702", event: "积极发言", persons: ["张雨绮"], score: 1, status: "matched" },
+      { entity_id: "d3", id: "2026080703", event: "作业未交", persons: ["HHR"], score: -2, status: "uploaded" },
+    ],
+    edits: [
+      { entity_id: "e1", id: "2026080123", operation: "A", title: "A 积极", persons: ["ZBY"], status: "approved" },
+      { entity_id: "e2", id: "2026080124", operation: "D", title: "D 12", persons: [], status: "pending_review", error: { type: "target_missing" } },
+    ],
+  };
+
+  function say(text, ok) {
+    const el = $("msg");
+    el.textContent = text || "";
+    el.className = "msg " + (ok === false ? "err" : "ok");
+  }
+  const esc = (t) => (t === null || t === undefined) ? "-" : String(t);
+  const day = (t) => (t ? String(t).slice(0, 10) : "-");
+
+  /* ---------- 渲染 ---------- */
+  function renderStats(counts) {
+    const box = $("stats");
+    box.innerHTML = "";
+    [["pending_review", "待纠错"], ["pending_match", "待匹配"], ["matched", "待上传"], ["uploaded", "已上传"], ["total", "库中合计"]]
+      .forEach(([key, label]) => {
+        const d = document.createElement("div"); d.className = "stat";
+        const b = document.createElement("b"); b.textContent = esc(counts[key] || 0);
+        const s = document.createElement("span"); s.textContent = label;
+        d.appendChild(b); d.appendChild(s); box.appendChild(d);
+      });
+  }
+
+  function errText(err) {
+    if (!err) return "";
+    if (typeof err === "string") return err;
+    const vals = (err.invalid_values || []).join("/");
+    return esc(err.type) + (err.field ? `（${err.field}）` : "") + (vals ? `: ${vals}` : "");
+  }
+
+  /* ---------- 选中 / 批量删除（清理重复落库等） ---------- */
+  function selectedRecordIds() {
+    return Array.from(document.querySelectorAll("#tbody-rec .row-chk:checked"))
+      .map((el) => el.value).filter(Boolean);
+  }
+  function updateSelCount() {
+    const n = selectedRecordIds().length;
+    const btn = $("btn-del-selected");
+    if (btn) btn.disabled = n === 0 || !bridged;
+    const c = $("sel-count");
+    if (c) c.textContent = n ? `已选 ${n} 条` : "";
+  }
+
+  function renderRecords(items) {
+    const tbody = $("tbody-rec");
+    tbody.innerHTML = "";
+    $("empty-rec").style.display = items.length ? "none" : "";
+    // 同一 id 出现多次 = 重复落库（历史上导入未去重留下的），标出来方便清理
+    const seen = {};
+    items.forEach((r) => { seen[r.id] = (seen[r.id] || 0) + 1; });
+    items.forEach((r) => {
+      const tr = document.createElement("tr");
+      const tdChk = document.createElement("td");
+      const chk = document.createElement("input");
+      chk.type = "checkbox"; chk.className = "row-chk"; chk.value = r.entity_id || "";
+      chk.onchange = updateSelCount;
+      tdChk.appendChild(chk); tr.appendChild(tdChk);
+
+      const add = (t, cls) => { const td = document.createElement("td"); td.textContent = esc(t); if (cls) td.className = cls; tr.appendChild(td); };
+      const tdId = document.createElement("td");
+      tdId.textContent = esc(r.id);
+      if (seen[r.id] > 1) {
+        const mark = document.createElement("span");
+        mark.className = "err"; mark.style.marginLeft = "6px";
+        mark.textContent = `重复×${seen[r.id]}`;
+        tdId.appendChild(mark);
+      }
+      tr.appendChild(tdId);
+      add(r.event); add((r.persons || []).join(", ")); add(r.score); 
+      const tdSt = document.createElement("td");
+      const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = STATUS_TEXT[r.status] || esc(r.status);
+      tdSt.appendChild(pill); tr.appendChild(tdSt);
+      const tdErr = document.createElement("td"); tdErr.className = "err"; tdErr.textContent = errText(r.error); tr.appendChild(tdErr);
+
+      const tdOps = document.createElement("td");
+      if (bridged) {
+        const bFix = document.createElement("button"); bFix.className = "small"; bFix.textContent = "纠错";
+        bFix.onclick = () => openRecord(r);
+        tdOps.appendChild(bFix);
+      } else {
+        tdOps.appendChild(Object.assign(document.createElement("span"), { className: "tag", textContent: "只读演示" }));
+      }
+      tr.appendChild(tdOps);
+      tbody.appendChild(tr);
+    });
+    $("chk-rec-all").checked = false;
+    updateSelCount();
+  }
+
+  function renderEdits(items) {
+    const tbody = $("tbody-edit");
+    tbody.innerHTML = "";
+    $("empty-edit").style.display = items.length ? "none" : "";
+    items.forEach((r) => {
+      const tr = document.createElement("tr");
+      const add = (t, cls) => { const td = document.createElement("td"); td.textContent = esc(t); if (cls) td.className = cls; tr.appendChild(td); };
+      add(r.id); add(r.operation); add(r.title); add((r.persons || []).join(", "));
+      const tdSt = document.createElement("td");
+      const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = STATUS_TEXT[r.status] || esc(r.status);
+      tdSt.appendChild(pill); tr.appendChild(tdSt);
+      const tdErr = document.createElement("td"); tdErr.className = "err"; tdErr.textContent = errText(r.error); tr.appendChild(tdErr);
+
+      const tdOps = document.createElement("td");
+      if (bridged) {
+        const bFix = document.createElement("button"); bFix.className = "small"; bFix.textContent = "纠错";
+        bFix.onclick = () => openEdit(r);
+        tdOps.appendChild(bFix);
+      } else {
+        tdOps.appendChild(Object.assign(document.createElement("span"), { className: "tag", textContent: "只读演示" }));
+      }
+      tr.appendChild(tdOps);
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------- 纠错抽屉 ---------- */
+  let editing = null;  // {kind:'record'|'edit', item}
+
+  function field(labelText, id, value) {
+    const l = document.createElement("label"); l.className = "f"; l.textContent = labelText;
+    const i = document.createElement("input"); i.id = id; i.value = value === null || value === undefined ? "" : String(value);
+    l.appendChild(i); return l;
+  }
+  function openRecord(r) {
+    editing = { kind: "record", item: r };
+    $("drawer").classList.remove("hidden");
+    $("d-title").textContent = "纠错 · 积分记录";
+    $("d-id").textContent = `entity_id: ${esc(r.entity_id)}　ID: ${esc(r.id)}　状态: ${STATUS_TEXT[r.status] || esc(r.status)}`;
+    const body = $("d-body"); body.innerHTML = "";
+    body.appendChild(field("事件名（title）", "d-event", r.event));
+    body.appendChild(field("人员（逗号分隔，如 ZBY,WGF）", "d-persons", (r.persons || []).join(",")));
+    body.appendChild(field("分数", "d-score", r.score));
+    body.appendChild(field("记录人（recorder，姓名或编号）", "d-recorder", r.recorder));
+    body.appendChild(field("备注", "d-remark", r.remark));
+    if (r.error) {
+      const d = document.createElement("div"); d.className = "err"; d.style.marginTop = "8px";
+      d.textContent = "当前错误：" + errText(r.error); body.appendChild(d);
+    }
+    $("d-msg").textContent = "";
+  }
+  function openEdit(r) {
+    editing = { kind: "edit", item: r };
+    $("drawer").classList.remove("hidden");
+    $("d-title").textContent = "纠错 · 编辑请求";
+    $("d-id").textContent = `entity_id: ${esc(r.entity_id)}　ID: ${esc(r.id)}　操作: ${esc(r.operation)}　状态: ${STATUS_TEXT[r.status] || esc(r.status)}`;
+    const body = $("d-body"); body.innerHTML = "";
+    body.appendChild(field("事件名", "d-event", r.title));
+    body.appendChild(field("人员（逗号分隔）", "d-persons", (r.persons || []).join(",")));
+    const l = document.createElement("label"); l.className = "f";
+    l.textContent = "整行重填（可选，填了就以整行为准，如 2026080923A<积极><ZBY><+1>）";
+    const ta = document.createElement("textarea"); ta.id = "d-newline";
+    l.appendChild(ta); body.appendChild(l);
+    if (r.error) {
+      const d = document.createElement("div"); d.className = "err"; d.style.marginTop = "8px";
+      d.textContent = "当前错误：" + errText(r.error); body.appendChild(d);
+    }
+    $("d-msg").textContent = "";
+  }
+
+  /* ---------- 文件通道（App → 框架 → 系统对话框 → 回执） ---------- */
+  function pickFiles(mode, multiple, filter) {
+    return new Promise((resolve) => {
+      const requestId = "r" + Math.random().toString(36).slice(2);
+      const onMsg = (e) => {
+        const m = e.data;
+        if (!m || m.type !== "ichen:pick-file-result" || m.requestId !== requestId) return;
+        window.removeEventListener("message", onMsg);
+        resolve(m);
+      };
+      window.addEventListener("message", onMsg);
+      window.parent.postMessage({ type: "ichen:pick-file", app: APP, requestId: requestId, mode: mode, multiple: multiple, filter: filter }, "*");
+    });
+  }
+  async function pickAndRecognize(action, filter, label) {
+    if (!bridged) { say("独立演示模式：文件对话框只在接入前端后可用", false); return; }
+    const picked = await pickFiles("open", true, filter);
+    if (!picked || !picked.ok) {
+      if (picked && picked.error) say(picked.error, false);
+      else say("已取消选择", true);
+      return;
+    }
+    say(`已选 ${picked.paths.length} 个文件，正在${label}…`, true);
+    call(action, { paths: picked.paths, type: $("f-rec-type").value.trim() || undefined });
+  }
+
+  /* ---------- 调用 ---------- */
+  function call(action, payload) {
+    if (!bridged) { say("独立演示模式：只读演示数据，接入前端后即可真实读写", false); return; }
+    window.parent.postMessage({ app: APP, action: action, payload: payload || {} }, "*");
+  }
+  function reloadRecords() { call("list", { status: $("f-rec-status").value }); }
+  function reloadEdits() { call("edits", { status: $("f-edit-status").value }); }
+  function refresh() {
+    if (!bridged) {
+      renderStats(DEMO.status); renderRecords(DEMO.records); renderEdits(DEMO.edits);
+      say("独立演示模式：以下为只读演示数据", true);
+      return;
+    }
+    call("status", {}); reloadRecords(); reloadEdits();
+  }
+
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (!m || m.app !== APP) return;
+    if (m.ok === false) { say(m.error || m.message || "操作失败", false); }
+    else if (m.message) say(m.message, true);
+
+    switch (m.action) {
+      case "status":
+        if (m.ok !== false) renderStats(m.data || {});
+        break;
+      case "list":
+        if (m.ok !== false) renderRecords((m.data || {}).items || []);
+        break;
+      case "edits":
+        if (m.ok !== false) renderEdits((m.data || {}).items || []);
+        break;
+      case "stats":
+        if (m.ok !== false) say("统计：" + JSON.stringify(m.data || {}, null, 2), true);
+        break;
+      default:
+        // 导入 / 校验 / 匹配 / 上传 / 纠错 / 取消：完成后回到库状态
+        if (m.ok !== false) { call("status", {}); reloadRecords(); reloadEdits(); }
+    }
+  });
+
+  /* ---------- 事件 ---------- */
+  $("btn-refresh").addEventListener("click", refresh);
+  $("btn-stats").addEventListener("click", () => call("stats", {}));
+  $("btn-validate").addEventListener("click", () => call("validate", {}));
+  $("btn-pipeline").addEventListener("click", () => call("pipeline", {}));
+  $("btn-upload").addEventListener("click", () => {
+    if (bridged && !confirm("确认上传库中「待上传」的积分记录？")) return;
+    call("upload", {});
+  });
+  $("btn-reload-rec").addEventListener("click", reloadRecords);
+  $("chk-rec-all").addEventListener("change", (e) => {
+    document.querySelectorAll("#tbody-rec .row-chk").forEach((c) => { c.checked = e.target.checked; });
+    updateSelCount();
+  });
+  $("btn-del-selected").addEventListener("click", () => {
+    const ids = selectedRecordIds();
+    if (!ids.length) { say("请先勾选要删除的记录", false); return; }
+    if (!confirm(`删除选中的 ${ids.length} 条积分记录？\n（列表不再显示，库中仍保留，必要时可由管理员恢复）`)) return;
+    call("delete_records", { entity_ids: ids });
+  });
+  $("btn-reload-edit").addEventListener("click", reloadEdits);
+  $("f-rec-status").addEventListener("change", reloadRecords);
+  $("f-edit-status").addEventListener("change", reloadEdits);
+
+  $("btn-rec-log").addEventListener("click", () => pickAndRecognize("recognize", "image", "识别班务日志"));
+  $("btn-rec-edit").addEventListener("click", () => pickAndRecognize("recognize_edits", "image", "识别修改单"));
+  $("btn-json-toggle").addEventListener("click", () => $("json-panel").classList.toggle("hidden"));
+  $("btn-import-json").addEventListener("click", () => {
+    const text = $("f-json").value.trim();
+    if (!text) { say("请先粘贴 JSON", false); return; }
+    call("import_json", { json: text });
+  });
+
+  $("btn-reset").addEventListener("click", () => {
+    if (!confirm("清空全部积分记录与编辑请求？此操作不可恢复！")) return;
+    if (!confirm("再确认一次：真的要清空吗？")) return;
+    call("reset", { confirm: true });
+  });
+
+  $("btn-d-close").addEventListener("click", () => { $("drawer").classList.add("hidden"); editing = null; });
+  $("btn-d-save").addEventListener("click", () => {
+    if (!editing) return;
+    const parts = $("d-persons").value.trim();
+    if (editing.kind === "record") {
+      call("correct_record", {
+        entity_id: editing.item.entity_id,
+        event: $("d-event").value,
+        persons: parts,
+        score: $("d-score") ? $("d-score").value : undefined,
+        recorder: $("d-recorder") ? $("d-recorder").value : undefined,
+        remark: $("d-remark") ? $("d-remark").value : undefined,
+      });
+    } else {
+      call("correct_edit", {
+        entity_id: editing.item.entity_id,
+        event: $("d-event").value,
+        persons: parts,
+        new_line: $("d-newline").value.trim(),
+      });
+    }
+    $("drawer").classList.add("hidden"); editing = null;
+  });
+  $("btn-d-cancel").addEventListener("click", () => {
+    if (!editing) return;
+    if (!confirm("取消这一条？（状态置为已取消，不再参与流程）")) return;
+    call(editing.kind === "record" ? "cancel_record" : "cancel_edit", { entity_id: editing.item.entity_id });
+    $("drawer").classList.add("hidden"); editing = null;
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>

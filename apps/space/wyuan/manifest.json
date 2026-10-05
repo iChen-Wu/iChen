@@ -1,0 +1,10 @@
+{
+  "name": "WYuan",
+  "id": "wyuan",
+  "version": "1.0.0",
+  "description": "早期产物：消息总线 + 程序引擎 + 调度中心。当前版本暂不可在中枢内运行。",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "order": 90
+}

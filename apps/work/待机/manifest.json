@@ -1,0 +1,8 @@
+{
+  "name": "待机",
+  "id": "idle",
+  "version": "0.1.0",
+  "description": "待机视频",
+  "icon": "icon.svg",
+  "ui": "index.html"
+}

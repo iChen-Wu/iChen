@@ -1,0 +1,10 @@
+{
+  "name": "积分管理",
+  "id": "byu.points",
+  "version": "0.1.0",
+  "description": "班务日志 / 修改单识别 → 校验 → 应用编辑 → 匹配 → 上传（class_manager/points 外壳化，库为中心可中断恢复）",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "order": 3
+}

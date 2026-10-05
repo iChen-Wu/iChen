@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>文件 - sys.files</title>
+<style>
+  /* 主题令牌（独立模式兜底；嵌入模式由总台注入 shared 样式覆盖） */
+  :root {
+    color-scheme: light;
+    --app-bg:#eef4fd; --app-fg:#0b1120; --app-card:#ffffff; --app-muted:#8a95ad;
+    --app-border:rgba(0,0,0,.07); --app-hover:rgba(76,154,255,.08); --app-accent:#4c9aff;
+    --app-danger:#e5484d; --app-mask:rgba(15,23,42,.35);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --app-bg:#0f1522; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad;
+    --app-border:rgba(255,255,255,.10); --app-hover:rgba(76,154,255,.16); --app-accent:#5aa2ff;
+    --app-danger:#ff6b6f; --app-mask:rgba(0,0,0,.5);
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="system"] {
+      color-scheme: dark;
+      --app-bg:#0f1522; --app-fg:#e7edf8; --app-card:#18202f; --app-muted:#8b97ad;
+      --app-border:rgba(255,255,255,.10); --app-hover:rgba(76,154,255,.16); --app-accent:#5aa2ff;
+      --app-danger:#ff6b6f; --app-mask:rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: system-ui, "Microsoft YaHei", sans-serif;
+    background: var(--app-bg); color: var(--app-fg);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  .bar {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border-bottom: 1px solid var(--app-border); background: var(--app-card); flex: 0 0 auto;
+  }
+  .ico-btn {
+    width: 34px; height: 34px; flex: 0 0 34px; display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 9px; background: transparent; color: var(--app-fg); cursor: pointer;
+  }
+  .ico-btn:hover:not(:disabled) { background: var(--app-hover); }
+  .ico-btn:disabled { opacity: .35; cursor: default; }
+  .crumb {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px;
+    overflow-x: auto; white-space: nowrap; font-size: 13px; scrollbar-width: none;
+  }
+  .crumb::-webkit-scrollbar { display: none; }
+  .crumb span { color: var(--app-muted); padding: 3px 6px; border-radius: 7px; cursor: pointer; }
+  .crumb span:hover { background: var(--app-hover); color: var(--app-fg); }
+  .crumb span.cur { color: var(--app-fg); font-weight: 600; }
+  .crumb i { color: var(--app-muted); font-style: normal; opacity: .6; }
+
+  /* ---------- 列表 ---------- */
+  .list { flex: 1; overflow-y: auto; padding: 8px 10px 24px; }
+  .row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-bottom: 4px;
+    border-radius: 11px; background: var(--app-card); cursor: pointer;
+    border: 1px solid transparent; transition: background .12s, border-color .12s;
+  }
+  .row:hover { background: var(--app-hover); }
+  .row.sel { border-color: var(--app-accent); background: var(--app-hover); }
+  .row .fi { width: 30px; height: 30px; flex: 0 0 30px; display: flex; align-items: center; justify-content: center; }
+  .row .fi svg { width: 26px; height: 26px; display: block; }
+  .row .meta { flex: 1; min-width: 0; }
+  .row .nm { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .sub { font-size: 11.5px; color: var(--app-muted); margin-top: 1px; }
+  .row .more {
+    width: 30px; height: 30px; flex: 0 0 30px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--app-muted); cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .row .more:hover { background: var(--app-hover); color: var(--app-fg); }
+
+  .empty, .hint { padding: 28px 16px; text-align: center; color: var(--app-muted); font-size: 13px; }
+
+  /* ---------- 弹层 ---------- */
+  .mask {
+    position: fixed; inset: 0; background: var(--app-mask); display: flex;
+    align-items: center; justify-content: center; padding: 20px; z-index: 20;
+  }
+  .mask[hidden] { display: none; }
+  .modal {
+    width: 100%; max-width: 460px; max-height: 100%; display: flex; flex-direction: column;
+    background: var(--app-card); border-radius: 14px; padding: 16px 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.28);
+  }
+  .modal h3 { margin: 0 0 10px; font-size: 15px; }
+  .modal .body { flex: 1; min-height: 0; overflow: auto; }
+  .modal .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .btn {
+    padding: 7px 15px; border: 0; border-radius: 9px; font-size: 13px; cursor: pointer;
+    background: var(--app-hover); color: var(--app-fg);
+  }
+  .btn:hover { filter: brightness(.96); }
+  .btn.primary { background: var(--app-accent); color: #fff; }
+  .btn.danger { background: var(--app-danger); color: #fff; }
+  input[type=text] {
+    width: 100%; padding: 9px 11px; border-radius: 9px; font-size: 14px;
+    border: 1px solid var(--app-border); background: var(--app-bg); color: var(--app-fg);
+  }
+  pre {
+    margin: 0; padding: 12px; border-radius: 10px; background: var(--app-bg);
+    font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+    max-height: 52vh; overflow: auto;
+  }
+  .modal img { max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; }
+  .kv { font-size: 12.5px; line-height: 1.9; color: var(--app-muted); }
+  .kv b { color: var(--app-fg); font-weight: 600; }
+
+  /* 右键/更多 菜单 */
+  .menu {
+    position: fixed; z-index: 30; min-width: 150px; padding: 5px;
+    background: var(--app-card); border: 1px solid var(--app-border); border-radius: 11px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.24);
+  }
+  .menu button {
+    display: block; width: 100%; text-align: left; padding: 8px 11px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--app-fg); font-size: 13px; cursor: pointer;
+  }
+  .menu button:hover { background: var(--app-hover); }
+  .menu button.danger { color: var(--app-danger); }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: rgba(15,23,42,.9); color: #fff; padding: 9px 16px; border-radius: 10px;
+    font-size: 13px; z-index: 40; pointer-events: none;
+  }
+  .toast[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <button class="ico-btn" id="up" title="返回上级">
+    <svg viewBox="0 0 24 24" width="19" height="19"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="crumb" id="crumb"></div>
+  <button class="ico-btn" id="new" title="新建">
+    <svg viewBox="0 0 24 24" width="19" height="19"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+  <button class="ico-btn" id="refresh" title="刷新">
+    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 12a8 8 0 1 1-2.3-5.6" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<div class="list" id="list">
+  <div class="empty" id="empty">正在载入…</div>
+</div>
+
+<div class="mask" id="mask" hidden><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const APP_ID = "sys.files";
+  const ROOT_LABEL = "data";
+
+  /* ================= 桥 ================= */
+  let bridged = window.parent !== window && window.parent.__ICHEN_BRIDGE__ === true;
+
+  // 等待中的调用。注意：**框架的回执只带 {app, action, ...结果}**（见
+  // system/desktop/js/appframe.js 的 reply 构造），不会带回我们额外塞进 payload 的字段，
+  // 所以这里按 action 做 FIFO 匹配，而不是自定义请求号。
+  const waiters = [];
+
+  // 父框架握手 + 注入样式 + 主题
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (!m || typeof m !== "object") return;
+    if (m.type === "ichen:css" && m.css) {
+      const s = document.createElement("style"); s.textContent = m.css; document.head.appendChild(s);
+    }
+    if (m.type === "ichen:bridge") bridged = true;
+    if (m.type === "ichen:theme" && m.theme) document.documentElement.dataset.theme = m.theme;
+    // 本 App 的回执：按 action 找最早的等待者
+    if (m.app === APP_ID && typeof m.action === "string") {
+      const i = waiters.findIndex((w) => w.action === m.action);
+      if (i >= 0) waiters.splice(i, 1)[0].resolve(m);
+    }
+  });
+
+  if (!document.documentElement.dataset.theme) document.documentElement.dataset.theme = "system";
+
+  /** 调 core.run({action, payload})；独立模式（无桥）返回一个明确的错误。 */
+  function call(action, payload) {
+    if (!bridged) {
+      return Promise.resolve({ ok: false, error: "未接入中枢（独立模式无文件访问）：请在前端里打开本 App" });
+    }
+    return new Promise((resolve) => {
+      const w = { action: action, resolve: resolve };
+      waiters.push(w);
+      window.parent.postMessage({ app: APP_ID, action: action, payload: payload || {} }, "*");
+      setTimeout(() => {
+        const i = waiters.indexOf(w);
+        if (i >= 0) { waiters.splice(i, 1); resolve({ ok: false, error: "超时：中枢未响应" }); }
+      }, 20000);
+    });
+  }
+
+  /* ================= 工具 ================= */
+  const $ = (id) => document.getElementById(id);
+
+  function human(n) {
+    if (n < 0) return "—";
+    const u = ["B", "KB", "MB", "GB", "TB"]; let v = n, i = 0;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return (i === 0 ? v.toFixed(0) : v.toFixed(1)) + " " + u[i];
+  }
+  function fmtTime(ts) {
+    const d = new Date(ts * 1000), p = (n) => (n < 10 ? "0" + n : "" + n);
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $("toast"); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
+  }
+
+  function svgFolder(color) {
+    return '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="' + color + '" opacity=".9"/></svg>';
+  }
+  function svgFile(ext) {
+    const colors = { json: "#f0b429", md: "#4c9aff", py: "#3fa796", log: "#8a95ad", db: "#c46a6a", yaml: "#c98a3f", yml: "#c98a3f", env: "#c46a6a" };
+    const c = colors[ext] || "#9aa6bd";
+    return '<svg viewBox="0 0 24 24"><path d="M6 3h7l5 5v13H6z" fill="' + c + '" opacity=".85"/><path d="M13 3v5h5" fill="none" stroke="#fff" stroke-width="1.6"/></svg>';
+  }
+  function svgImg() {
+    return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="#3fa796" opacity=".85"/><circle cx="9" cy="10" r="1.6" fill="#fff"/><path d="M5 17l4.5-5 3 3.2L16 12l3 5z" fill="#fff" opacity=".9"/></svg>';
+  }
+  const IMG_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico"]);
+
+  /* ================= 状态 ================= */
+  let cwd = "";                 // 相对 data/ 的路径
+  let entries = [];
+  let selected = new Set();
+
+  /* ================= 渲染 ================= */
+  function renderCrumb() {
+    const box = $("crumb");
+    box.innerHTML = "";
+    const parts = cwd ? cwd.split("/") : [];
+    const mk = (label, path, isCur) => {
+      const s = document.createElement("span");
+      s.textContent = label;
+      if (isCur) s.className = "cur";
+      s.onclick = () => { if (!isCur) load(path); };
+      return s;
+    };
+    box.appendChild(mk(ROOT_LABEL, "", parts.length === 0));
+    parts.forEach((p, i) => {
+      const sep = document.createElement("i"); sep.textContent = "›";
+      box.appendChild(sep);
+      box.appendChild(mk(p, parts.slice(0, i + 1).join("/"), i === parts.length - 1));
+    });
+    $("up").disabled = parts.length === 0;
+  }
+
+  function renderList() {
+    const box = $("list");
+    box.innerHTML = "";
+    if (!entries.length) {
+      const d = document.createElement("div");
+      d.className = "empty"; d.textContent = "这个文件夹是空的";
+      box.appendChild(d); return;
+    }
+    entries.forEach((it) => {
+      const row = document.createElement("div");
+      row.className = "row" + (selected.has(it.path) ? " sel" : "");
+
+      const fi = document.createElement("div");
+      fi.className = "fi";
+      if (it.dir) fi.innerHTML = svgFolder("#7fa8f0");
+      else if (IMG_EXT.has(it.ext)) fi.innerHTML = svgImg();
+      else fi.innerHTML = svgFile(it.ext);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const nm = document.createElement("div");
+      nm.className = "nm"; nm.textContent = it.name;
+      const sub = document.createElement("div");
+      sub.className = "sub";
+      sub.textContent = (it.dir ? "文件夹" : human(it.size)) + " · " + fmtTime(it.mtime)
+        + (it.sensitive ? " · 重要" : "");
+      meta.appendChild(nm); meta.appendChild(sub);
+
+      const more = document.createElement("button");
+      more.className = "more"; more.textContent = "⋮";
+      more.title = "更多操作";
+      more.onclick = (ev) => { ev.stopPropagation(); openMenu(ev.clientX, ev.clientY, it); };
+
+      row.appendChild(fi); row.appendChild(meta); row.appendChild(more);
+      row.onclick = () => {
+        if (it.dir) load(it.path);
+        else preview(it);
+      };
+      row.oncontextmenu = (ev) => { ev.preventDefault(); openMenu(ev.clientX, ev.clientY, it); };
+      box.appendChild(row);
+    });
+  }
+
+  /* ================= 加载 ================= */
+  /** 列表区显示一段提示（载入中 / 出错 / 空）——保证任何分支都不会停在「正在载入…」。 */
+  function showListMessage(text, isError) {
+    const box = $("list");
+    box.innerHTML = "";
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = text;
+    if (isError) d.style.color = "var(--app-danger)";
+    box.appendChild(d);
+  }
+
+  async function load(path) {
+    showListMessage("正在载入…", false);
+    const r = await call("list", { path: path || "" });
+    if (!r.ok) {
+      showListMessage((r.error || "读取失败") + "（点右上角 ↻ 重试）", true);
+      return;
+    }
+    cwd = r.path || "";
+    entries = r.entries || [];
+    selected.clear();
+    renderCrumb(); renderList();
+  }
+
+  /* ================= 菜单 ================= */
+  let menuEl = null;
+  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+  document.addEventListener("mousedown", (e) => {
+    if (menuEl && !menuEl.contains(e.target)) closeMenu();
+  });
+
+  function openMenu(x, y, item) {
+    closeMenu();
+    const m = document.createElement("div");
+    m.className = "menu";
+    const add = (label, fn, danger) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if (danger) b.className = "danger";
+      b.onclick = () => { closeMenu(); fn(); };
+      m.appendChild(b);
+    };
+    if (item.dir) add("打开", () => load(item.path));
+    else add("预览", () => preview(item));
+    add("重命名", () => promptRename(item));
+    add("移动到…", () => promptMove(item));
+    add("删除", () => confirmDelete(item), true);
+    document.body.appendChild(m);
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(6, Math.min(x, innerWidth - w - 6)) + "px";
+    m.style.top = Math.max(6, Math.min(y, innerHeight - h - 6)) + "px";
+    menuEl = m;
+  }
+
+  /* ================= 弹层 ================= */
+  function showModal(build) {
+    const mask = $("mask"), modal = $("modal");
+    modal.innerHTML = "";
+    build(modal, () => { mask.hidden = true; });
+    mask.hidden = false;
+  }
+  function row(parent, label, value) {
+    const d = document.createElement("div");
+    d.className = "kv"; d.innerHTML = label + "：<b>" + value + "</b>";
+    parent.appendChild(d);
+  }
+
+  function preview(item) {
+    if (IMG_EXT.has(item.ext)) {
+      call("raw", { path: item.path }).then((r) => {
+        showModal((modal, close) => {
+          const h = document.createElement("h3"); h.textContent = item.name; modal.appendChild(h);
+          const box = document.createElement("div"); box.className = "body";
+          if (r.ok && r.data_uri) {
+            const img = document.createElement("img"); img.src = r.data_uri; box.appendChild(img);
+          } else {
+            const p = document.createElement("div"); p.className = "empty";
+            p.textContent = (r && r.error) || "无法预览"; box.appendChild(p);
+          }
+          modal.appendChild(box); modal.appendChild(acts(close)); 
+        });
+      });
+      return;
+    }
+    call("read", { path: item.path }).then((r) => showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = item.name; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      if (r.ok) {
+        const pre = document.createElement("pre"); pre.textContent = r.text; box.appendChild(pre);
+      } else {
+        row(box, "无法以文本查看", (r.error || "未知原因"));
+        row(box, "路径", item.path || ROOT_LABEL);
+        row(box, "大小", human(item.size));
+        row(box, "修改时间", fmtTime(item.mtime));
+      }
+      modal.appendChild(box); modal.appendChild(acts(close));
+    }));
+  }
+
+  function detail(item) {
+    showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = "详情"; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      row(box, "名称", item.name);
+      row(box, "路径", (item.path || ROOT_LABEL));
+      row(box, "类型", item.dir ? "文件夹" : ("." + (item.ext || "无扩展名")));
+      if (!item.dir) row(box, "大小", human(item.size));
+      row(box, "修改时间", fmtTime(item.mtime));
+      if (item.sensitive) row(box, "注意", "位于系统重要目录");
+      modal.appendChild(box); modal.appendChild(acts(close));
+    });
+  }
+
+  function acts(close, extra) {
+    const a = document.createElement("div"); a.className = "acts";
+    (extra || []).forEach((b) => a.appendChild(b));
+    const c = document.createElement("button");
+    c.className = "btn"; c.textContent = "关闭"; c.onclick = close;
+    if (!extra || !extra.length) { /* 只有关闭 */ }
+    a.appendChild(c);
+    return a;
+  }
+
+  function promptRename(item) {
+    showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = "重命名"; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.value = item.name;
+      box.appendChild(inp); modal.appendChild(box);
+      const a = document.createElement("div"); a.className = "acts";
+      const ok = document.createElement("button"); ok.className = "btn primary"; ok.textContent = "确定";
+      ok.onclick = async () => {
+        const v = inp.value.trim();
+        if (!v || v === item.name) { close(); return; }
+        const r = await call("rename", { path: item.path, newName: v });
+        close(); toast(r.ok ? (r.message || "已重命名") : (r.error || "重命名失败"));
+        if (r.ok) load(cwd);
+      };
+      a.appendChild(ok);
+      const c = document.createElement("button"); c.className = "btn"; c.textContent = "取消"; c.onclick = close;
+      a.appendChild(c); modal.appendChild(a);
+      setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    });
+  }
+
+  function promptMove(item) {
+    showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = "移动到"; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      row(box, "提示", "填 data/ 下的目标文件夹，如 <b>logs</b> 或留空表示根目录");
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.placeholder = "留空 = data 根目录";
+      box.appendChild(inp); modal.appendChild(box);
+      const a = document.createElement("div"); a.className = "acts";
+      const ok = document.createElement("button"); ok.className = "btn primary"; ok.textContent = "移动";
+      ok.onclick = async () => {
+        const r = await call("move", { paths: [item.path], destDir: inp.value.trim() });
+        close(); toast(r.ok ? (r.message || "已移动") : (r.error || "移动失败"));
+        if (r.ok) load(cwd);
+      };
+      a.appendChild(ok);
+      const c = document.createElement("button"); c.className = "btn"; c.textContent = "取消"; c.onclick = close;
+      a.appendChild(c); modal.appendChild(a);
+    });
+  }
+
+  function confirmDelete(item) {
+    showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = "删除确认"; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      const p = document.createElement("div"); p.className = "kv";
+      p.innerHTML = "要删除 <b>" + item.name + "</b>（" + (item.dir ? "文件夹及其全部内容" : human(item.size)) + "）吗？<br>删除后不可恢复。";
+      box.appendChild(p);
+      if (item.sensitive) {
+        const w = document.createElement("div"); w.className = "kv";
+        w.innerHTML = "<br><b>注意</b>：它位于系统重要目录（db / config）。";
+        box.appendChild(w);
+      }
+      modal.appendChild(box);
+      const a = document.createElement("div"); a.className = "acts";
+      const del = document.createElement("button"); del.className = "btn danger"; del.textContent = "删除";
+      del.onclick = async () => {
+        const r = await call("delete", { paths: [item.path], confirm: true });
+        close(); toast(r.ok ? (r.message || "已删除") : (r.error || "删除失败"));
+        if (r.ok) load(cwd);
+      };
+      a.appendChild(del);
+      const c = document.createElement("button"); c.className = "btn"; c.textContent = "取消"; c.onclick = close;
+      a.appendChild(c); modal.appendChild(a);
+    });
+  }
+
+  function promptNew() {
+    showModal((modal, close) => {
+      const h = document.createElement("h3"); h.textContent = "新建"; modal.appendChild(h);
+      const box = document.createElement("div"); box.className = "body";
+      row(box, "位置", (cwd || ROOT_LABEL));
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.placeholder = "名称，如 备忘.md / 素材";
+      box.appendChild(inp);
+      const label = document.createElement("div"); label.className = "kv";
+      label.innerHTML = "<br>含扩展名则建文件（默认 .md），不含则建文件夹。";
+      box.appendChild(label);
+      modal.appendChild(box);
+      const a = document.createElement("div"); a.className = "acts";
+      const ok = document.createElement("button"); ok.className = "btn primary"; ok.textContent = "创建";
+      ok.onclick = async () => {
+        const v = inp.value.trim();
+        if (!v) { close(); return; }
+        const isFile = v.includes(".");
+        const r = isFile
+          ? await call("newfile", { path: cwd, name: v, content: "" })
+          : await call("mkdir", { path: cwd, name: v });
+        close(); toast(r.ok ? (r.message || "已创建") : (r.error || "创建失败"));
+        if (r.ok) load(cwd);
+      };
+      a.appendChild(ok);
+      const c = document.createElement("button"); c.className = "btn"; c.textContent = "取消"; c.onclick = close;
+      a.appendChild(c); modal.appendChild(a);
+      setTimeout(() => inp.focus(), 30);
+    });
+  }
+
+  /* ================= 事件 ================= */
+  $("up").onclick = () => {
+    if (!cwd) return;
+    const parts = cwd.split("/"); parts.pop();
+    load(parts.join("/"));
+  };
+  $("refresh").onclick = () => load(cwd);
+  $("new").onclick = promptNew;
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("mask").hidden = true; closeMenu(); }
+    if (e.key === "F5") { e.preventDefault(); load(cwd); }
+  });
+
+  /* ================= 启动 ================= */
+  load("");
+})();
+</script>
+</body>
+</html>

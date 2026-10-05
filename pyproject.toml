@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ichen-project"
+version = "3.0.0"
+description = "iChen Integrated Services - 数据中枢 · 传输中枢 · 自动化中枢 · 智能体中枢"
+authors = [{name = "Your Name", email = "you@example.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "websockets>=10.0",
+    "openai>=1.0.0",
+    "requests>=2.28.0",
+    "Pillow>=9.0.0",
+    "nats-py>=2.0.0",       # WYuan NATS 传输
+    "aiosqlite>=0.19.0",    # GYun.data 异步数据库
+    "pydantic>=2.0.0",      # 数据模型
+    "pyyaml>=6.0",          # 配置文件解析
+]
+
+[tool.setuptools]
+[tool.setuptools.packages.find]
+where = ["shared"]
+include = ["GYun*", "BYu*"]

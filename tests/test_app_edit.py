@@ -1,0 +1,266 @@
+"""App 编辑测试（system/apphost/app_edit.py，V3.0.0 · P4 基础批）。
+
+**不碰真实 apps/**：把 APPS_ROOT 指向临时目录后再调编辑方法。
+"""
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from system.apphost import app_edit, apps
+
+
+def _mk_app(root: Path, rel: str, app_id: str, name: str, order=None) -> Path:
+    d = root / rel
+    d.mkdir(parents=True, exist_ok=True)
+    meta = {"name": name, "id": app_id}
+    if order is not None:
+        meta["order"] = order
+    (d / "manifest.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    return d
+
+
+class AppEditTest(unittest.TestCase):
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self._old = app_edit.APPS_ROOT
+        self._old_apps = apps.APPS_ROOT
+        # 两处都要改：app_edit 用于路径校验，apps 用于 find_app_node 的默认 top
+        app_edit.APPS_ROOT = self.root
+        apps.APPS_ROOT = self.root
+        (self.root / "work").mkdir()
+        _mk_app(self.root, "work/alpha", "a.alpha", "甲")
+        _mk_app(self.root, "work/beta", "b.beta", "乙")
+
+    def tearDown(self):
+        app_edit.APPS_ROOT = self._old
+        apps.APPS_ROOT = self._old_apps
+        self._tmp.cleanup()
+
+    # ---------- 改名 ----------
+
+    def test_rename_app_updates_manifest_and_folder(self):
+        r = app_edit.AppEditMixin().rename_app("a.alpha", "新名字")
+        self.assertTrue(r["ok"], r)
+        self.assertTrue(r["folder_renamed"])
+        self.assertTrue((self.root / "work" / "新名字" / "manifest.json").is_file())
+        meta = json.loads((self.root / "work" / "新名字" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["name"], "新名字")
+
+    def test_rename_refuses_when_folder_name_taken(self):
+        r = app_edit.AppEditMixin().rename_app("a.alpha", "beta")
+        self.assertTrue(r["ok"])            # 显示名改了
+        self.assertFalse(r["folder_renamed"])  # 但目录没改（同名已存在）
+        self.assertIn("warning", r)
+
+    # ---------- 元数据 ----------
+
+    def test_set_meta_only_allowed_fields_and_numeric_order(self):
+        m = app_edit.AppEditMixin()
+        r = m.set_app_meta("a.alpha", {"order": "3", "description": "d", "id": "hacked"})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["meta"]["order"], 3.0)
+        self.assertEqual(r["meta"]["description"], "d")
+        self.assertEqual(r["meta"]["id"], "a.alpha")   # id 受保护
+
+    def test_set_meta_rejects_non_numeric_order(self):
+        r = app_edit.AppEditMixin().set_app_meta("a.alpha", {"order": "abc"})
+        self.assertFalse(r["ok"])
+
+    # ---------- 移动 ----------
+
+    def test_move_app(self):
+        (self.root / "space").mkdir()
+        r = app_edit.AppEditMixin().move_app("a.alpha", "space")
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["path"], "space/alpha")
+
+    def test_move_refuses_into_own_subdir(self):
+        r = app_edit.AppEditMixin().move_app("a.alpha", "work/alpha")
+        self.assertFalse(r["ok"])
+
+    # ---------- 删除 ----------
+
+    def test_delete_requires_confirm(self):
+        m = app_edit.AppEditMixin()
+        self.assertFalse(m.delete_app("a.alpha")["ok"])
+        self.assertTrue((self.root / "work" / "alpha").is_dir())   # 未被删
+        self.assertTrue(m.delete_app("a.alpha", confirm=True)["ok"])
+        self.assertFalse((self.root / "work" / "alpha").exists())
+
+    # ---------- 分区 / 分类 ----------
+
+    def test_create_folder_refuses_duplicate(self):
+        m = app_edit.AppEditMixin()
+        r1 = m.create_folder("work", "分类")
+        self.assertTrue(r1["ok"], r1)
+        self.assertTrue((self.root / "work" / "分类" / "folder.json").is_file())
+        r2 = m.create_folder("work", "分类")
+        self.assertFalse(r2["ok"])
+        self.assertIn("命名冲突", r2["error"])
+
+    def test_create_folder_rejects_illegal_name(self):
+        r = app_edit.AppEditMixin().create_folder("work", "a/b")
+        self.assertFalse(r["ok"])
+        r2 = app_edit.AppEditMixin().create_folder("work", "CON")
+        self.assertFalse(r2["ok"])
+
+    def test_rename_and_delete_folder(self):
+        m = app_edit.AppEditMixin()
+        m.create_folder("work", "旧名")
+        r = m.rename_folder("work/旧名", "新名")
+        self.assertTrue(r["ok"], r)
+        info = json.loads((self.root / "work" / "新名" / "folder.json").read_text(encoding="utf-8"))
+        self.assertEqual(info["name"], "新名")
+        self.assertTrue(m.delete_folder("work/新名", confirm=True)["ok"])
+
+    def test_delete_zone_allowed_with_confirm(self):
+        """分区（apps/ 一级目录）允许删除（=删除整个 Tab），但需 confirm=True。"""
+        r = app_edit.AppEditMixin().delete_folder("work", confirm=True)
+        self.assertTrue(r["ok"], r)
+        self.assertFalse((self.root / "work").exists())
+
+    def test_delete_zone_keep_apps_rejected(self):
+        """分区不能「保留删除」——App 不能放在 apps/ 根目录。"""
+        r = app_edit.AppEditMixin().delete_folder_keep_apps("work", confirm=True)
+        self.assertFalse(r["ok"], r)
+        self.assertTrue((self.root / "work").is_dir())
+
+    def test_cannot_rename_zone_directory(self):
+        """分区目录名不能改（key=目录名，且可能被运行中 App 占用）；应改显示名。"""
+        r = app_edit.AppEditMixin().rename_folder("work", "工作区2")
+        self.assertFalse(r["ok"], r)
+        self.assertTrue((self.root / "work").is_dir())
+        self.assertFalse((self.root / "工作区2").exists())
+
+    # ---------- 文件夹元数据 / 图标（V3.0.0 · P4 控制台 App 管理） ----------
+
+    def test_set_folder_meta_creates_folder_json_for_plain_dir(self):
+        """普通文件夹（无 folder.json）首次编辑元数据时补建。"""
+        m = app_edit.AppEditMixin()
+        m.create_folder("work", "分类甲")
+        r = m.set_folder_meta("work/分类甲", {"description": "测试描述", "order": 3})
+        self.assertTrue(r["ok"], r)
+        info = json.loads((self.root / "work" / "分类甲" / "folder.json").read_text(encoding="utf-8"))
+        self.assertEqual(info["description"], "测试描述")
+        self.assertEqual(info["order"], 3.0)
+
+    def test_set_folder_meta_on_zone(self):
+        """分区（一级目录）也能改显示名 / 描述（只动 folder.json，不改目录名）。"""
+        r = app_edit.AppEditMixin().set_folder_meta("work", {"name": "工作区", "description": "d"})
+        self.assertTrue(r["ok"], r)
+        info = json.loads((self.root / "work" / "folder.json").read_text(encoding="utf-8"))
+        self.assertEqual(info["name"], "工作区")
+        self.assertTrue((self.root / "work").is_dir())  # 目录名没变
+
+    def test_set_folder_meta_rejects_empty_name_and_bad_order(self):
+        m = app_edit.AppEditMixin()
+        self.assertFalse(m.set_folder_meta("work", {"name": "  "})["ok"])
+        self.assertFalse(m.set_folder_meta("work", {"order": "abc"})["ok"])
+
+    def test_set_folder_icon_copies_file(self):
+        svg = self.root / "src.svg"
+        svg.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>', encoding="utf-8")
+        r = app_edit.AppEditMixin().set_folder_icon("work", str(svg))
+        self.assertTrue(r["ok"], r)
+        self.assertTrue((self.root / "work" / "icon.svg").is_file())
+        info = json.loads((self.root / "work" / "folder.json").read_text(encoding="utf-8"))
+        self.assertEqual(info["icon"], "icon.svg")
+
+    def test_set_app_icon_copies_file(self):
+        svg = self.root / "a.svg"
+        svg.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>', encoding="utf-8")
+        r = app_edit.AppEditMixin().set_app_icon("a.alpha", str(svg))
+        self.assertTrue(r["ok"], r)
+        self.assertTrue((self.root / "work" / "alpha" / "icon.svg").is_file())
+
+    def test_set_folder_icon_rejects_bad_ext(self):
+        f = self.root / "x.txt"
+        f.write_text("x", encoding="utf-8")
+        r = app_edit.AppEditMixin().set_folder_icon("work", str(f))
+        self.assertFalse(r["ok"])
+
+    # ---------- 越界防护 ----------
+
+    def test_path_traversal_is_rejected(self):
+        m = app_edit.AppEditMixin()
+        self.assertFalse(m.create_folder("..", "x")["ok"])
+        self.assertFalse(m.move_app("a.alpha", "../outside")["ok"])
+        self.assertFalse(m.rename_folder("../../etc", "x")["ok"])
+
+    # ---------- 进阶批：新建 / 导入 / 复制 / 导出 ----------
+
+    def test_create_app_from_html(self):
+        r = app_edit.AppEditMixin().create_app_from_html("work", "小工具", "<!DOCTYPE html><html><body>hi</body></html>")
+        self.assertTrue(r["ok"], r)
+        d = self.root / "work" / "小工具"
+        self.assertTrue((d / "manifest.json").is_file())
+        self.assertTrue((d / "ui" / "index.html").is_file())
+        self.assertIn("hi", (d / "ui" / "index.html").read_text(encoding="utf-8"))
+        meta = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["type"], "ui")
+
+    def test_create_app_from_html_rejects_empty(self):
+        self.assertFalse(app_edit.AppEditMixin().create_app_from_html("work", "空", "   ")["ok"])
+
+    def test_create_url_app_requires_http(self):
+        m = app_edit.AppEditMixin()
+        self.assertFalse(m.create_url_app("work", "站点", "ftp://x")["ok"])
+        r = m.create_url_app("work", "站点", "https://example.com")
+        self.assertTrue(r["ok"], r)
+        meta = json.loads((self.root / "work" / "站点" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["type"], "url")
+        self.assertEqual(meta["url"], "https://example.com")
+        self.assertEqual(meta["container"], "iframe")
+
+    def test_create_url_app_accepts_bare_ip_and_host(self):
+        """裸地址（IP / 域名）自动补 http://。"""
+        m = app_edit.AppEditMixin()
+        r = m.create_url_app("work", "路由", "192.168.3.78")
+        self.assertTrue(r["ok"], r)
+        meta = json.loads((self.root / "work" / "路由" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["url"], "http://192.168.3.78")
+        r2 = m.create_url_app("work", "站点2", "example.com/path")
+        self.assertTrue(r2["ok"], r2)
+        meta2 = json.loads((self.root / "work" / "站点2" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta2["url"], "http://example.com/path")
+
+    def test_import_and_export_app(self):
+        # 用独立临时目录，避免与上一次运行残留冲突
+        outer = tempfile.TemporaryDirectory()
+        self.addCleanup(outer.cleanup)
+        outer_root = Path(outer.name)
+
+        src = outer_root / "external_app"
+        src.mkdir()
+        (src / "manifest.json").write_text(json.dumps({"name": "外来", "id": "ext.x"}, ensure_ascii=False), encoding="utf-8")
+        m = app_edit.AppEditMixin()
+        r = m.import_app_folder("work", str(src))
+        self.assertTrue(r["ok"], r)
+        self.assertTrue((self.root / "work" / "external_app" / "manifest.json").is_file())
+
+        dest = outer_root / "exported"
+        dest.mkdir()
+        r2 = m.export_app("ext.x", str(dest))
+        self.assertTrue(r2["ok"], r2)
+        self.assertTrue((dest / "external_app" / "manifest.json").is_file())
+
+    def test_import_rejects_folder_without_manifest(self):
+        outer = tempfile.TemporaryDirectory()
+        self.addCleanup(outer.cleanup)
+        bad = Path(outer.name) / "no_manifest_dir"
+        bad.mkdir()
+        self.assertFalse(app_edit.AppEditMixin().import_app_folder("work", str(bad))["ok"])
+
+    def test_duplicate_app_gets_distinct_id(self):
+        r = app_edit.AppEditMixin().duplicate_app("a.alpha", "甲副本")
+        self.assertTrue(r["ok"], r)
+        meta = json.loads((self.root / "work" / "甲副本" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["name"], "甲副本")
+        self.assertNotEqual(meta["id"], "a.alpha")
+
+
+if __name__ == "__main__":
+    unittest.main()

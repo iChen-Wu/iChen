@@ -1,0 +1,10 @@
+{
+  "name": "Qxia",
+  "id": "qxia",
+  "version": "1.0.0",
+  "description": "早期产物：全插件智能体运行侧。当前版本暂不可在中枢内运行。",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "order": 90
+}

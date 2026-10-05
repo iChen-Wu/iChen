@@ -1,0 +1,73 @@
+# ========== Python 编译缓存 ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ========== 虚拟环境 ==========
+venv/
+.venv/
+env/
+ENV/
+.env
+env.bak/
+venv.bak/
+
+# ========== VS Code 编辑器缓存 ==========
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ========== 日志、临时文件 ==========
+logs/
+test_logs/
+*.log
+temp/
+a_draft/
+tmp/
+*.tmp
+*.bak
+
+# ========== Git 自身临时文件 ==========
+.git/*.swp
+.MERGE_MSG.swp
+
+# ========== 环境配置密钥（防止上传密码、token） ==========
+*.env
+
+# =========== 数据 ============
+# GYun Data 运行时数据（P2 起数据归位 data/；此处为迁移期的旧位置保留）
+shared/GYun/data/runtime/
+
+# =========== 其他 ============
+.reasonix/
+
+# =========== 启动器与快捷方式（本地产物，不入库） ============
+/iChen.exe
+/iChen.lnk
+*.lnk
+
+# =========== 运行数据与缓存（不提交） ============
+/data/
+.pytest_cache/

@@ -1,0 +1,11 @@
+{
+  "name": "Hello",
+  "id": "hello.service",
+  "version": "1.0.0",
+  "description": "示例服务 App：运行即在后台开一个可访问的 HTTP 端口",
+  "icon": "icon.svg",
+  "entry": "core.py",
+  "ui": "ui/index.html",
+  "type": "service",
+  "order": 90
+}

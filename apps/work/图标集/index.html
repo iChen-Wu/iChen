@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVG 图标集 · Simple</title>
+<style>
+  :root{
+    --bg:#f5f5f7;
+    --card:#ffffff;
+    --text:#1d1d1f;
+    --muted:#86868b;
+    --accent:#0071e3;
+    --border:rgba(0,0,0,.06);
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#000000;
+      --card:#1c1c1e;
+      --text:#f5f5f7;
+      --muted:#8e8e93;
+      --accent:#0a84ff;
+      --border:rgba(255,255,255,.08);
+      --shadow:0 1px 2px rgba(0,0,0,.6),0 8px 24px rgba(0,0,0,.45);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:48px 24px 80px;
+    transition:background .3s;
+  }
+  .wrap{max-width:960px;margin:0 auto}
+  header{margin-bottom:28px}
+  h1{
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:-.02em;
+    margin:0 0 6px;
+  }
+  .sub{color:var(--muted);font-size:14px;letter-spacing:.01em}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(104px,1fr));
+    gap:12px;
+  }
+  .card{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:20px 6px 14px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    color:var(--text);
+    font:inherit;
+    cursor:pointer;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),color .22s,box-shadow .22s;
+    -webkit-tap-highlight-color:transparent;
+    outline:none;
+  }
+  .card:hover,.card:focus-visible{transform:translateY(-3px);color:var(--accent)}
+  .card:active{transform:scale(.95)}
+  .card.copied{color:var(--accent)}
+  .card svg{width:28px;height:28px;display:block}
+  .label{
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:.02em;
+    transition:color .22s;
+  }
+  .card:hover .label{color:var(--accent)}
+  .toast{
+    position:fixed;left:50%;bottom:36px;transform:translate(-50%,16px);
+    background:rgba(30,30,32,.92);
+    color:#fff;
+    font-size:13.5px;
+    padding:10px 20px;
+    border-radius:999px;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s cubic-bezier(.2,.8,.2,1);
+    z-index:99;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  footer{margin-top:36px;color:var(--muted);font-size:12.5px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>SVG 图标集</h1>
+    <p class="sub">点击任意图标即可复制 SVG 代码 · 24×24 · 描边风格</p>
+  </header>
+
+  <div class="grid" id="grid">
+
+    <!-- 首页 -->
+    <button class="card" data-name="首页">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 10.4 12 3.8l8.2 6.6"/><path d="M5.8 9v11.2h12.4V9"/><path d="M9.8 20.2v-5.6h4.4v5.6"/></svg>
+      <span class="label">首页</span>
+    </button>
+
+    <!-- 搜索 -->
+    <button class="card" data-name="搜索">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <span class="label">搜索</span>
+    </button>
+
+    <!-- 心形 -->
+    <button class="card" data-name="心形">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.3s-8.4-4.9-8.4-10.4c0-2.5 2-4.5 4.4-4.5 1.7 0 3.2.9 4 2.3.8-1.4 2.3-2.3 4-2.3 2.4 0 4.4 2 4.4 4.5 0 5.5-8.4 10.4-8.4 10.4z"/></svg>
+      <span class="label">心形</span>
+    </button>
+
+    <!-- 星标 -->
+    <button class="card" data-name="星标">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z"/></svg>
+      <span class="label">星标</span>
+    </button>
+
+    <!-- 通知 -->
+    <button class="card" data-name="通知">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.5 5.6 1.5 5.6H5S6.5 14 6.5 10z"/><path d="M10 18.6a2.2 2.2 0 0 0 4 0"/></svg>
+      <span class="label">通知</span>
+    </button>
+
+    <!-- 用户 -->
+    <button class="card" data-name="用户">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.8 20.5a7.5 7.5 0 0 1 14.4 0"/></svg>
+      <span class="label">用户</span>
+    </button>
+
+    <!-- 设置 -->
+    <button class="card" data-name="设置">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9"/><path d="M18.5 8H21"/><path d="M4 16h4"/><path d="M13.5 16H21"/><circle cx="15.5" cy="8" r="2.3"/><circle cx="10.5" cy="16" r="2.3"/></svg>
+      <span class="label">设置</span>
+    </button>
+
+    <!-- 相机 -->
+    <button class="card" data-name="相机">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3.5"/><path d="M8.6 7l1.3-2.2h4.2L15.4 7"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+      <span class="label">相机</span>
+    </button>
+
+    <!-- 日历 -->
+    <button class="card" data-name="日历">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M8 3.5v4M16 3.5v4M3.5 10.5h17"/></svg>
+      <span class="label">日历</span>
+    </button>
+
+    <!-- 消息 -->
+    <button class="card" data-name="消息">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8c0 3.9-3.8 7-8.5 7-1 0-1.9-.1-2.8-.4L4.5 20l1.2-3.4a6.6 6.6 0 0 1-2.2-4.8c0-3.9 3.8-7 8.5-7s8.5 3.1 8.5 7z"/></svg>
+      <span class="label">消息</span>
+    </button>
+
+    <!-- 云 -->
+    <button class="card" data-name="云">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10a3.5 3.5 0 0 0 .3-7 5.5 5.5 0 0 0-10.5-1.2A4 4 0 0 0 7 18.5z"/></svg>
+      <span class="label">云</span>
+    </button>
+
+    <!-- 锁 -->
+    <button class="card" data-name="锁">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10.5" rx="3"/><path d="M8.2 10V7.8a3.8 3.8 0 0 1 7.6 0V10"/></svg>
+      <span class="label">锁</span>
+    </button>
+
+    <!-- 位置 -->
+    <button class="card" data-name="位置">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10.3" r="2.6"/></svg>
+      <span class="label">位置</span>
+    </button>
+
+    <!-- 时间 -->
+    <button class="card" data-name="时间">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></svg>
+      <span class="label">时间</span>
+    </button>
+
+    <!-- 文件夹 -->
+    <button class="card" data-name="文件夹">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.8a2.3 2.3 0 0 1 2.3-2.3h3.4l2 2.6h7a2.3 2.3 0 0 1 2.3 2.3v7.1a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3z"/></svg>
+      <span class="label">文件夹</span>
+    </button>
+
+    <!-- 删除 -->
+    <button class="card" data-name="删除">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M9.5 7V5.4a1.7 1.7 0 0 1 1.7-1.7h1.6a1.7 1.7 0 0 1 1.7 1.7V7"/><path d="M6.6 7l.9 12a1.8 1.8 0 0 0 1.8 1.7h5.4a1.8 1.8 0 0 0 1.8-1.7l.9-12"/></svg>
+      <span class="label">删除</span>
+    </button>
+
+    <!-- 分享 -->
+    <button class="card" data-name="分享">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v12"/><path d="m8 7.5 4-4 4 4"/><path d="M5.5 13.5v5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-5"/></svg>
+      <span class="label">分享</span>
+    </button>
+
+    <!-- 书签 -->
+    <button class="card" data-name="书签">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 5.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1V20l-5.5-4-5.5 4z"/></svg>
+      <span class="label">书签</span>
+    </button>
+
+    <!-- 闪电 -->
+    <button class="card" data-name="闪电">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.6 3 6 13.2h5.2L10.4 21 18 10.8h-5.2z"/></svg>
+      <span class="label">闪电</span>
+    </button>
+
+    <!-- 月亮 -->
+    <button class="card" data-name="月亮">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 14.4A8.4 8.4 0 0 1 9.6 3.8a8.4 8.4 0 1 0 10.6 10.6z"/></svg>
+      <span class="label">月亮</span>
+    </button>
+
+    <!-- 太阳 -->
+    <button class="card" data-name="太阳">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"/></svg>
+      <span class="label">太阳</span>
+    </button>
+
+    <!-- 购物袋 -->
+    <button class="card" data-name="购物袋">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 8h12.4l.9 11.2a1.5 1.5 0 0 1-1.5 1.6H6.4a1.5 1.5 0 0 1-1.5-1.6z"/><path d="M9 8V6.4a3 3 0 0 1 6 0V8"/></svg>
+      <span class="label">购物袋</span>
+    </button>
+
+    <!-- 下载 -->
+    <button class="card" data-name="下载">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8v11"/><path d="m7.5 10.3 4.5 4.5 4.5-4.5"/><path d="M4.5 19.8h15"/></svg>
+      <span class="label">下载</span>
+    </button>
+
+    <!-- 播放 -->
+    <button class="card" data-name="播放">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 5.6 18.6 12 8.5 18.4z"/></svg>
+      <span class="label">播放</span>
+    </button>
+
+    <!-- 箭头 -->
+    <button class="card" data-name="箭头">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12h15"/><path d="m13 5.5 6.5 6.5-6.5 6.5"/></svg>
+      <span class="label">箭头</span>
+    </button>
+
+    <!-- 加号 -->
+    <button class="card" data-name="加号">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="label">加号</span>
+    </button>
+
+    <!-- 对勾 -->
+    <button class="card" data-name="对勾">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+      <span class="label">对勾</span>
+    </button>
+
+    <!-- 关闭 -->
+    <button class="card" data-name="关闭">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      <span class="label">关闭</span>
+    </button>
+
+  </div>
+
+  <footer>点击图标 → 复制 SVG 代码，可直接粘贴进任何 HTML</footer>
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+  const toast = document.getElementById('toast');
+  let toastTimer;
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1400);
+  }
+
+  function copyText(text){
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); resolve(); }
+      catch (e) { reject(e); }
+      finally { document.body.removeChild(ta); }
+    });
+  }
+
+  document.getElementById('grid').addEventListener('click', (e) => {
+    const card = e.target.closest('.card');
+    if (!card) return;
+
+    const svgEl = card.querySelector('svg');
+    const code = svgEl.outerHTML;
+
+    copyText(code).then(() => {
+      showToast(`已复制「${card.dataset.name}」`);
+      card.classList.add('copied');
+      setTimeout(() => card.classList.remove('copied'), 700);
+    }).catch(() => {
+      showToast('复制失败，请手动选择');
+    });
+  });
+</script>
+</body>
+</html>

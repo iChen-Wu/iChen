@@ -1,0 +1,281 @@
+/* ============================================================
+   iChen 前端 - 设计令牌（CSS 变量）
+   风格：蓝调 + 玻璃拟态 + 多层阴影
+   布局参数（层次/宽度）沿用 demo.html 示例定位
+   ============================================================ */
+:root {
+    /* ----- 背景层次 ----- */
+    --color-bg: #fdfdfd;                 /* 主背景 */
+    --color-bg-muted: #fbfcfe;           /* 二级背景（提亮：组件比蓝灰背景明显浅） */
+    --color-bg-soft: #e8edf5;            /* 三级背景（浅蓝灰） */
+    --color-bg-hover: #e0e6f0;           /* 悬停 */
+    --bg-active: rgba(59, 130, 246, 0.08); /* 激活（浅蓝底） */
+    --bg-card: rgba(255, 255, 255, 0.72);  /* 玻璃卡片底 */
+    --bg-input: #eef2f8;
+
+    /* ----- 边框 ----- */
+    --color-border: rgba(0, 0, 0, 0.06);
+    --color-border-soft: rgba(0, 0, 0, 0.04);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --border-light: rgba(255, 255, 255, 0.5);
+
+    /* ----- 文本 ----- */
+    --color-text: #0b1120;
+    --color-text-secondary: #4b556b;
+    --color-text-muted: #8a95ad;
+    --color-text-faint: #8a95ad;
+    --text-on-primary: #ffffff;
+
+    /* ----- 待机层（浅淡蓝，与聊天区分） ----- */
+    --color-idle-bg: linear-gradient(160deg, #eaf2fb 0%, #d9e8f8 100%);
+    --color-idle-text: #2c4a7c;
+    --color-idle-muted: #4b6a9e;
+    --color-idle-faint: #7a94bd;
+
+    /* ----- 主色（蓝调） ----- */
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-light: rgba(59, 130, 246, 0.12);
+    --accent-gradient: linear-gradient(135deg, #4e91fd, #7476e7);
+    --color-primary: #3b82f6;            /* 主按钮底色（映射 accent） */
+    --color-primary-text: #ffffff;
+    --color-dark: #4b556b;               /* 次级按钮（待机等） */
+    --color-dark-text: #ffffff;
+
+    /* ----- 消息气泡 ----- */
+    --color-bubble-left: linear-gradient(135deg, #eef5fe, #e2ecfb); /* AI 气泡（浅蓝渐变） */
+    --color-bubble-left-border: rgba(0, 0, 0, 0.04);
+    --color-bubble-right: linear-gradient(135deg, #609cfd, #8fb1fc); /* 用户气泡（蓝渐变） */
+    --color-bubble-right-border: transparent;
+
+    /* ----- 语义色 ----- */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    /* ----- 阴影系统（多层柔和） ----- */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.04), 0 24px 56px rgba(0, 0, 0, 0.08);
+    --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-input: 0 2px 12px rgba(0, 0, 0, 0.04);
+    --shadow-cmd: 0 16px 48px rgba(0, 0, 0, 0.12), 0 40px 80px rgba(0, 0, 0, 0.10);
+    --shadow-accent: 0 2px 8px rgba(59, 130, 246, 0.2);
+
+    /* ----- 圆角 ----- */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    --radius-input: 16px;                /* 输入卡片圆角（对齐旧版 lg） */
+
+    /* ----- 尺寸（布局参数沿用 demo；图标栏按旧版主侧栏 64px） ----- */
+    --sidebar-width: 200px;
+    --iconbar-width: 64px;
+    --chat-max-width: 1200px;
+    --chat-column-width: 800px;
+    --topbar-height: 48px;
+
+    /* ----- 核心轴（中间绝对稳重：限宽居中） ----- */
+    --axis-chat-max: 780px;             /* 聊天主轴最大宽度 */
+    --axis-ws-max: 780px;               /* 工作区主轴：与主聊天一致 */
+    --axis-summon-max: 780px;           /* 智能体降临主轴（复用聊天） */
+    --glass-bar-blur: 16px;             /* 顶部悬浮条模糊 */
+
+    /* ----- 过渡（弹性，旧版风格） ----- */
+    --transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    --transition-smooth: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+
+    /* ----- 玻璃拟态 ----- */
+    --glass-bg: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.35);
+    --glass-blur: 20px;
+    --glass-panel-bg: rgba(255, 255, 255, 0.85); /* 下拉面板 / 浮层背景 */
+    --glass-bar-bg: rgba(234, 242, 251, 0.55); /* 顶部状态栏：待机浅蓝玻璃 */
+    --chat-bg: #eef4fd;                        /* 聊天界面淡蓝（更浅，偏蓝） */
+    --ws-bg: #f2f4f8;                          /* 工作区/空间/设置：浅灰加一点蓝（更浅） */
+    --glass-highlight: rgba(255, 255, 255, 0.55); /* 玻璃边缘薄高光 */
+    --glass-list-bg: rgba(250, 252, 255, 0.72); /* 左右列表：比状态栏更浅的近白玻璃 */
+    --focus-border: #9ebef2;                   /* 输入框聚焦边框：浅蓝（状态栏同调） */
+
+    /* ----- 字体 ----- */
+    --font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+/* ----- 深色模式（跟随系统） ----- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: #0a0b12;
+        --color-bg-muted: #1b2130;
+        --color-bg-soft: #1a1d2b;
+        --color-bg-hover: #22263a;
+        --bg-active: rgba(59, 130, 246, 0.14);
+        --bg-card: rgba(20, 22, 36, 0.7);
+        --bg-input: #1a1d2b;
+        --color-border: rgba(255, 255, 255, 0.06);
+        --color-border-soft: rgba(255, 255, 255, 0.04);
+        --color-border-strong: rgba(255, 255, 255, 0.14);
+
+        --color-text: #eef2f8;
+        --color-text-secondary: #8892a8;
+        --color-text-muted: #4e5870;
+        --color-text-faint: #4e5870;
+
+        --color-idle-bg: linear-gradient(160deg, #eaf2fb 0%, #d9e8f8 100%);
+        --color-idle-text: #2c4a7c;
+        --color-idle-muted: #4b6a9e;
+        --color-idle-faint: #7a94bd;
+
+        --color-bubble-left: linear-gradient(135deg, #1d2436, #222c42);
+        --color-bubble-left-border: rgba(255, 255, 255, 0.06);
+        --color-bubble-right: linear-gradient(135deg, #3b82f6, #818cf8);
+
+        --shadow-input: 0 2px 12px rgba(0, 0, 0, 0.4);
+        --shadow-cmd: 0 16px 48px rgba(0, 0, 0, 0.7);
+        --shadow-accent: 0 2px 8px rgba(59, 130, 246, 0.4);
+
+        --glass-bg: rgba(16, 18, 30, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.06);
+        --glass-blur: 24px;
+        --glass-panel-bg: rgba(16, 18, 30, 0.88);
+        --glass-bar-bg: rgba(30, 42, 66, 0.55); /* 顶部状态栏：暗蓝玻璃 */
+        --chat-bg: #1a2740;                     /* 聊天界面暗蓝 */
+        --ws-bg: #171c28;                       /* 工作区/空间/设置：暗灰蓝（稍浅） */
+        --glass-highlight: rgba(255, 255, 255, 0.08);
+        --glass-list-bg: rgba(22, 28, 42, 0.72); /* 左右列表：暗玻璃，比状态栏略浅 */
+        --focus-border: #7aa5e8;                 /* 输入框聚焦边框：浅蓝（深色下可见） */
+    }
+}
+
+/* ----- 强制浅色（设置页主题模式：浅色，覆盖"跟随系统"的深色） ----- */
+:root[data-theme="light"] {
+    --color-bg: #fdfdfd;
+    --color-bg-muted: #fbfcfe;
+    --color-bg-soft: #e8edf5;
+    --color-bg-hover: #e0e6f0;
+    --bg-active: rgba(59, 130, 246, 0.08);
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-input: #eef2f8;
+    --color-border: rgba(0, 0, 0, 0.06);
+    --color-border-soft: rgba(0, 0, 0, 0.04);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --border-light: rgba(255, 255, 255, 0.5);
+
+    --color-text: #0b1120;
+    --color-text-secondary: #4b556b;
+    --color-text-muted: #8a95ad;
+    --color-text-faint: #8a95ad;
+    --text-on-primary: #ffffff;
+
+    --color-idle-bg: linear-gradient(160deg, #eaf2fb 0%, #d9e8f8 100%);
+    --color-idle-text: #2c4a7c;
+    --color-idle-muted: #4b6a9e;
+    --color-idle-faint: #7a94bd;
+
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-light: rgba(59, 130, 246, 0.12);
+    --accent-gradient: linear-gradient(135deg, #4e91fd, #7476e7);
+    --color-primary: #3b82f6;
+    --color-primary-text: #ffffff;
+    --color-dark: #4b556b;
+    --color-dark-text: #ffffff;
+
+    --color-bubble-left: linear-gradient(135deg, #eef5fe, #e2ecfb);
+    --color-bubble-left-border: rgba(0, 0, 0, 0.04);
+    --color-bubble-right: linear-gradient(135deg, #609cfd, #8fb1fc);
+    --color-bubble-right-border: transparent;
+
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.04), 0 24px 56px rgba(0, 0, 0, 0.08);
+    --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-input: 0 2px 12px rgba(0, 0, 0, 0.04);
+    --shadow-cmd: 0 16px 48px rgba(0, 0, 0, 0.12), 0 40px 80px rgba(0, 0, 0, 0.10);
+    --shadow-accent: 0 2px 8px rgba(59, 130, 246, 0.2);
+
+    --glass-bg: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.35);
+    --glass-blur: 20px;
+    --glass-panel-bg: rgba(255, 255, 255, 0.85);
+    --glass-bar-bg: rgba(234, 242, 251, 0.55); /* 顶部状态栏：待机浅蓝玻璃 */
+    --chat-bg: #eef4fd;                        /* 聊天界面淡蓝（更浅） */
+    --ws-bg: #f2f4f8;                          /* 工作区/空间/设置：浅灰加一点蓝（更浅） */
+    --glass-highlight: rgba(255, 255, 255, 0.55);
+    --glass-list-bg: rgba(250, 252, 255, 0.72); /* 左右列表：近白玻璃 */
+    --focus-border: #9ebef2;                   /* 输入框聚焦边框：浅蓝 */
+}
+
+/* ----- 强制深色（设置页主题模式：深色） ----- */
+:root[data-theme="dark"] {
+    --color-bg: #0a0b12;
+    --color-bg-muted: #1b2130;
+    --color-bg-soft: #1a1d2b;
+    --color-bg-hover: #22263a;
+    --bg-active: rgba(59, 130, 246, 0.14);
+    --bg-card: rgba(20, 22, 36, 0.7);
+    --bg-input: #1a1d2b;
+    --color-border: rgba(255, 255, 255, 0.06);
+    --color-border-soft: rgba(255, 255, 255, 0.04);
+    --color-border-strong: rgba(255, 255, 255, 0.14);
+    --border-light: rgba(255, 255, 255, 0.04);
+
+    --color-text: #eef2f8;
+    --color-text-secondary: #8892a8;
+    --color-text-muted: #4e5870;
+    --color-text-faint: #4e5870;
+    --text-on-primary: #ffffff;
+
+    --color-idle-bg: linear-gradient(160deg, #eaf2fb 0%, #d9e8f8 100%);
+    --color-idle-text: #2c4a7c;
+    --color-idle-muted: #4b6a9e;
+    --color-idle-faint: #7a94bd;
+
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-light: rgba(59, 130, 246, 0.12);
+    --accent-gradient: linear-gradient(135deg, #4e91fd, #7476e7);
+    --color-primary: #3b82f6;
+    --color-primary-text: #ffffff;
+    --color-dark: #4b556b;
+    --color-dark-text: #ffffff;
+
+    --color-bubble-left: linear-gradient(135deg, #1d2436, #222c42);
+    --color-bubble-left-border: rgba(255, 255, 255, 0.06);
+    --color-bubble-right: linear-gradient(135deg, #3b82f6, #818cf8);
+    --color-bubble-right-border: transparent;
+
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-input: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --shadow-cmd: 0 16px 48px rgba(0, 0, 0, 0.7);
+    --shadow-accent: 0 2px 8px rgba(59, 130, 246, 0.4);
+
+    --glass-bg: rgba(16, 18, 30, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-blur: 24px;
+    --glass-panel-bg: rgba(16, 18, 30, 0.88);
+    --glass-bar-bg: rgba(30, 42, 66, 0.55); /* 顶部状态栏：暗蓝玻璃 */
+    --chat-bg: #1a2740;                     /* 聊天界面暗蓝 */
+    --ws-bg: #171c28;                       /* 工作区/空间/设置：暗灰蓝（稍浅） */
+    --glass-highlight: rgba(255, 255, 255, 0.08);
+    --glass-list-bg: rgba(22, 28, 42, 0.72); /* 左右列表：暗玻璃 */
+    --focus-border: #7aa5e8;                 /* 输入框聚焦边框：浅蓝 */
+}

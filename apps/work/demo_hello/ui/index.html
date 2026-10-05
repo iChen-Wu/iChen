@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>你好 - demo.hello</title>
+<style>
+  /* 主题令牌（独立模式兜底；嵌入模式由总台注入 shared/css 覆盖）*/
+  :root { color-scheme: light; --app-bg:#eef4fd; --app-bg2:#f2f4f8; --app-fg:#0b1120; --app-card:#ffffff; --app-glass:rgba(255,255,255,.82); --app-muted:#8a95ad; --app-border:rgba(0,0,0,.06); --app-input:#fbfcfe; }
+  html[data-theme="dark"] { color-scheme: dark; --app-bg:#0f1522; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-glass:rgba(24,32,47,.82); --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; }
+  @media (prefers-color-scheme: dark) { html[data-theme="system"] { color-scheme: dark; --app-bg:#0f1522; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-glass:rgba(24,32,47,.82); --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; } }
+
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: var(--app-bg, #f5f7fb); }
+  .card { max-width: 420px; margin: 0 auto; background: var(--app-card, #fff); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  button { margin-top: 12px; padding: 8px 18px; border: 0; border-radius: 8px; background: #4c9aff; color: #fff; font-size: 15px; cursor: pointer; }
+  #result { margin-top: 12px; font-size: 14px; color: var(--app-fg, #333); white-space: pre-wrap; }
+  .tag { font-size: 12px; color: var(--app-muted, #999); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>你好</h2>
+    <p class="tag">独立演示模式也能渲染；检测到父桥后按钮改走 postMessage</p>
+    <button id="btn">调用 core.run()</button>
+    <div id="result">（结果将显示在这里）</div>
+  </div>
+
+  <script>
+    // 主题联动（接入规范第八节 6）：总台下传 data-theme；独立模式默认跟随系统
+    (function () {
+      function applyFrameTheme(t) { if (t) document.documentElement.dataset.theme = t; }
+      if (!document.documentElement.dataset.theme) document.documentElement.dataset.theme = "system";
+      window.addEventListener("message", (e) => {
+        const m = e.data;
+        if (m && (m.type === "ichen:theme" || m.type === "ichen:css") && m.theme) applyFrameTheme(m.theme);
+      });
+    })();
+
+    // 嵌入模式：接收父框架注入的 shared 样式与桥握手（接入规范 五.2 / ich:bridge）
+    window.addEventListener("message", (e) => {
+      const m = e.data;
+      if (m && m.type === "ichen:css" && m.css) {
+        const s = document.createElement("style");
+        s.textContent = m.css;
+        document.head.appendChild(s);
+      }
+    });
+
+    // 固定桥检测写法（见接入规范 七.3）；父挂载后会补发 ich:bridge 握手
+    let bridged = window.parent !== window && window.parent.__ICHEN_BRIDGE__ === true;
+    window.addEventListener("message", (e) => {
+      const m = e.data;
+      if (m && m.type === "ichen:bridge") bridged = true;
+    });
+    const demo = { ok: true, message: "独立模式演示数据：core 未接入，仅界面展示" };
+    const resultEl = document.getElementById("result");
+    const btn = document.getElementById("btn");
+
+    function show(r) {
+      resultEl.textContent = (r.ok === false ? "出错：" : "") + JSON.stringify(r, null, 2);
+    }
+
+    btn.addEventListener("click", () => {
+      if (bridged) {
+        // 嵌入模式：请求父前端执行 core.run({action:"hello"})
+        window.parent.postMessage({ app: "demo.hello", action: "hello", payload: {} }, "*");
+      } else {
+        show(demo); // 独立模式：演示数据
+      }
+    });
+
+    // 接收父前端回执
+    window.addEventListener("message", (e) => {
+      const m = e.data;
+      if (m && m.app === "demo.hello") show(m);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+[permissions]
+allow = ["Bash=git -C . log --oneline -10; git -C . status -s | Select-Object -First 20"]

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hello</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, "Microsoft YaHei", sans-serif; background: #f5f7fb; color: #1f2937;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card { max-width: 480px; width: 90%; background: #fff; border-radius: 14px;
+          padding: 24px 26px; box-shadow: 0 2px 12px rgba(15,23,42,.08); }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .desc { color: #6b7280; font-size: 13px; margin-bottom: 18px; }
+  .row { display: flex; justify-content: space-between; padding: 8px 0;
+         border-bottom: 1px solid #eef1f6; font-size: 13px; }
+  .row:last-of-type { border-bottom: 0; }
+  .k { color: #6b7280; }
+  .v { font-weight: 600; }
+  .v.on { color: #10b981; }
+  .v.off { color: #9aa4b2; }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .hint { margin-top: 16px; font-size: 12px; color: #9aa4b2; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello 服务</h1>
+    <div class="desc">示例服务 App —— 运行即在后台开一个可访问的 HTTP 端口。</div>
+
+    <div class="row"><span class="k">服务名</span><span class="v">Hello</span></div>
+    <div class="row"><span class="k">版本</span><span class="v">1.0.0</span></div>
+    <div class="row"><span class="k">状态</span><span class="v" id="status">—</span></div>
+    <div class="row"><span class="k">监听</span><span class="v" id="addr">—</span></div>
+    <div class="row"><span class="k">管理页</span><span class="v"><a id="link" href="#" target="_blank">—</a></span></div>
+
+    <div class="hint">
+      这个 HTTP 服务跑在中枢进程内（后台线程），不依赖外部进程。<br>
+      生命周期由中枢「后台」面板统一管理——终止 App 实例即回收端口。
+    </div>
+  </div>
+
+<script>
+(function () {
+    // 通过桥协议调 core.run() 查询服务状态
+    function queryStatus() {
+        // App 桥：postMessage 到父窗口，由框架转发到 Python
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ app: 'hello.service', action: 'run', payload: {} }, '*');
+        }
+    }
+
+    window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.app !== 'hello.service') return;
+        if (!d.ok) {
+            document.getElementById('status').textContent = '异常';
+            document.getElementById('status').className = 'v off';
+            return;
+        }
+        var s = d;
+        var el = document.getElementById('status');
+        if (s.running) {
+            el.textContent = '运行中';
+            el.className = 'v on';
+        } else {
+            el.textContent = '未运行';
+            el.className = 'v off';
+        }
+        if (s.url) {
+            document.getElementById('addr').textContent = s.host + ':' + s.port;
+            var a = document.getElementById('link');
+            a.textContent = s.url;
+            a.href = s.url;
+        }
+    });
+
+    // 页面加载后立即查询一次
+    queryStatus();
+    // 每 5 秒轮询一次
+    setInterval(queryStatus, 5000);
+})();
+</script>
+</body>
+</html>

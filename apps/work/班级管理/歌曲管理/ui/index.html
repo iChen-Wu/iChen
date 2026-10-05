@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>歌曲管理 - byu.song</title>
+<style>
+  /* 主题令牌（独立模式兜底；嵌入模式由总台注入 shared/css 覆盖）*/
+  :root { color-scheme: light; --app-bg:#eef4fd; --app-bg2:#f2f4f8; --app-fg:#0b1120; --app-card:#ffffff; --app-glass:rgba(255,255,255,.82); --app-muted:#8a95ad; --app-border:rgba(0,0,0,.06); --app-input:#fbfcfe; }
+  html[data-theme="dark"] { color-scheme: dark; --app-bg:#0f1522; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-glass:rgba(24,32,47,.82); --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; }
+  @media (prefers-color-scheme: dark) { html[data-theme="system"] { color-scheme: dark; --app-bg:#0f1522; --app-bg2:#121a27; --app-fg:#e7edf8; --app-card:#18202f; --app-glass:rgba(24,32,47,.82); --app-muted:#8b97ad; --app-border:rgba(255,255,255,.10); --app-input:#1d2637; } }
+
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; padding: 0; background: var(--app-bg2, #f2f4f8); color: var(--app-fg, #0b1120); }
+  .wrap { max-width: 880px; margin: 0 auto; width: 100%; flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { font-size: 12px; color: var(--app-muted, #8a95ad); margin: 0 0 14px; }
+  .card { background: var(--app-card, #fff); border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 12px; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 110px; background: var(--app-bg, #eef4fd); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; color: #2563eb; }
+  .stat span { font-size: 12px; color: var(--app-muted, #4b556b); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid #eef1f6; }
+  th { color: var(--app-muted, #8a95ad); font-weight: 500; font-size: 12px; }
+  tr:hover td { background: var(--app-input, #f8fafd); }
+  .ops button { margin-right: 6px; }
+  button { border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: var(--app-card, #e8edf5); color: var(--app-fg, #1f2a44); }
+  button.primary { background: #3b82f6; color: #fff; }
+  button.danger { background: #fee2e2; color: #b91c1c; }
+  button.small { padding: 2px 8px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+  input, select { width: 100%; padding: 6px 8px; border: 1px solid var(--app-border, #dfe5ee); border-radius: 8px; font-size: 13px; background: var(--app-input, #fbfcfe); }
+  .msg { font-size: 12px; margin-top: 8px; min-height: 16px; white-space: pre-wrap; }
+  .msg.ok { color: #059669; } .msg.err { color: #dc2626; }
+  .empty { color: var(--app-muted, #8a95ad); text-align: center; padding: 22px 0; font-size: 13px; }
+  .tag { font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>歌曲管理</h1>
+    <p class="sub">班级歌单 · byu.song（BYu class_manager/song 外壳化 App）</p>
+
+    <div class="card">
+      <div class="bar">
+        <strong>歌单概览</strong>
+        <div>
+          <button id="btn-add-toggle" type="button">添加歌曲</button>
+          <button id="btn-refresh" class="primary" type="button">刷新</button>
+        </div>
+      </div>
+      <div id="add-panel" class="card" style="display:none; background: var(--app-input, #fbfcfe);">
+        <div class="form">
+          <input id="f-song" placeholder="歌名" />
+          <input id="f-singer" placeholder="歌手" />
+          <input id="f-recommender" placeholder="推荐人（如 ZBY / 姓名）" />
+          <select id="f-type">
+            <option value="班级">班级</option>
+            <option value="个人">个人</option>
+          </select>
+          <input id="f-weight" type="number" value="5" min="0" />
+        </div>
+        <div class="bar" style="margin:8px 0 0;">
+          <span class="tag">每次提交一首；可在同一推荐人下连续添加</span>
+          <button id="btn-add" class="primary" type="button">加入歌单</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="st-total">-</b><span>歌曲总数</span></div>
+        <div class="stat"><b id="st-active">-</b><span>活跃(权重&gt;0)</span></div>
+        <div class="stat"><b id="st-max">-</b><span>最高权重</span></div>
+      </div>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>歌曲</th><th>歌手</th><th>推荐人</th><th>类型</th><th>权重</th><th>操作</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty">暂无歌曲</div>
+    </div>
+  </div>
+
+<script>
+    // 主题联动（接入规范第八节 6）：总台下传 data-theme；独立模式默认跟随系统
+    (function () {
+      function applyFrameTheme(t) { if (t) document.documentElement.dataset.theme = t; }
+      if (!document.documentElement.dataset.theme) document.documentElement.dataset.theme = "system";
+      window.addEventListener("message", (e) => {
+        const m = e.data;
+        if (m && (m.type === "ichen:theme" || m.type === "ichen:css") && m.theme) applyFrameTheme(m.theme);
+      });
+    })();
+
+(function () {
+  // 嵌入模式：接收父框架注入的 shared 样式（接入规范 五.2，约定消息 type=ichen:css）
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:css" && m.css) {
+      const s = document.createElement("style");
+      s.textContent = m.css;
+      document.head.appendChild(s);
+    }
+  });
+
+  // 桥握手：父挂载后补发 ich:bridge → 进入嵌入模式并刷新（file/srcdoc 跨源时读不到 __ICHEN_BRIDGE__）
+  let bridged = window.parent !== window && window.parent.__ICHEN_BRIDGE__ === true;
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (m && m.type === "ichen:bridge" && !bridged) {
+      bridged = true;
+      refresh();
+    }
+  });
+  const APP = "byu.song";
+
+  /* ---------- 独立模式演示数据（脱离前端也能看） ---------- */
+  const DEMO = [
+    { id: 1, name: "稻香", singer: "周杰伦", recommender: "ZBY", type: "班级", weight: 10 },
+    { id: 2, name: "夜空中最亮的星", singer: "逃跑计划", recommender: "妈妈", type: "个人", weight: 8 },
+    { id: 3, name: "平凡之路", singer: "朴树", recommender: "ZBY", type: "班级", weight: 6 },
+    { id: 4, name: "晴天", singer: "周杰伦", recommender: "爸爸", type: "班级", weight: 12 },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const msg = $("msg");
+  const tbody = $("tbody");
+
+  function say(text, ok) {
+    msg.textContent = text || "";
+    msg.className = "msg " + (ok ? "ok" : "err");
+  }
+  function normSong(s) {
+    // 兼容后端不同字段命名（name/singer/weight 主字段，推荐人/类型允许 _name 变体）
+    return {
+      id: s.id,
+      name: s.name || s.song || "-",
+      singer: s.singer || "-",
+      recommender: s.tj_name || s.recommender || s.tj || "-",
+      type: s.lx_name || s.type || s.lx || "-",
+      weight: s.weight,
+    };
+  }
+  function render(songs) {
+    tbody.innerHTML = "";
+    const list = songs || [];
+    $("empty").style.display = list.length ? "none" : "";
+    let total = 0, active = 0, maxW = 0;
+    list.forEach((raw) => {
+      const s = normSong(raw);
+      total++; active += (Number(s.weight) > 0) ? 1 : 0; maxW = Math.max(maxW, Number(s.weight) || 0);
+      const tr = document.createElement("tr");
+      const tdW = (t) => { const d = document.createElement("td"); d.textContent = t; return d; };
+      tr.appendChild(tdW(s.name)); tr.appendChild(tdW(s.singer));
+      tr.appendChild(tdW(s.recommender)); tr.appendChild(tdW(s.type));
+      const wd = tdW(String(s.weight)); tr.appendChild(wd);
+      const od = document.createElement("td");
+      od.className = "ops";
+      if (bridged) {
+        const bUp = document.createElement("button"); bUp.className = "small"; bUp.textContent = "权重+1";
+        bUp.onclick = () => call("weight", { id: s.id, weight: (Number(s.weight) || 0) + 1 });
+        const bDel = document.createElement("button"); bDel.className = "small danger"; bDel.textContent = "删除";
+        bDel.onclick = () => call("delete", { name: s.name === "-" ? "" : s.name, singer: s.singer === "-" ? "" : s.singer });
+        od.appendChild(bUp); od.appendChild(bDel);
+      } else {
+        const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = "独立模式（只读演示）";
+        od.appendChild(tag);
+      }
+      tr.appendChild(od);
+      tbody.appendChild(tr);
+    });
+    $("st-total").textContent = total || "-";
+    $("st-active").textContent = active || "-";
+    $("st-max").textContent = maxW || "-";
+  }
+
+  /* ---------- 调用（嵌入→postMessage；独立→演示） ---------- */
+  function call(action, payload) {
+    if (!bridged) {
+      say("独立演示模式：此处为只读数据，接入前端后即可真实增删改", false);
+      return;
+    }
+    say("请求中…", true);
+    window.parent.postMessage({ app: APP, action: action, payload: payload || {} }, "*");
+  }
+  function refresh() {
+    if (bridged) { call("list", {}); return; }
+    render(DEMO);
+  }
+
+  window.addEventListener("message", (e) => {
+    const m = e.data;
+    if (!m || m.app !== APP) return;
+    if (m.ok === false) { say(m.error || m.message || "操作失败", false); return; }
+    if (m.action === "list") {
+      render(m.data || []);
+      say(m.message || "已刷新", true);
+    } else {
+      say(m.message || (m.ok ? "成功" : "失败"), m.ok !== false);
+      if (m.ok !== false) call("list", {});
+    }
+  });
+
+  /* ---------- 事件 ---------- */
+  $("btn-refresh").addEventListener("click", refresh);
+  $("btn-add-toggle").addEventListener("click", () => {
+    const p = $("add-panel");
+    p.style.display = p.style.display === "none" ? "" : "none";
+  });
+  $("btn-add").addEventListener("click", () => {
+    const song = $("f-song").value.trim();
+    const singer = $("f-singer").value.trim();
+    if (!song || !singer) { say("请填写歌名与歌手", false); return; }
+    const item = {
+      song: song, singer: singer,
+      recommender: $("f-recommender").value.trim(),
+      type: $("f-type").value,
+      weight: parseInt($("f-weight").value || "5", 10),
+    };
+    if (bridged) {
+      call("add", { songs: [item] });
+    } else {
+      say("独立演示模式：不真正提交（模拟加入 " + song + " - " + singer + "）", false);
+    }
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>

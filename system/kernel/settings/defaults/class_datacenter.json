@@ -1,0 +1,7 @@
+{
+  "allowed_types": [
+    "person",
+    "points_record",
+    "points_edit"
+  ]
+}

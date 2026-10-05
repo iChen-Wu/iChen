@@ -1,0 +1,11 @@
+# Qxia 智能体框架依赖
+# 说明：WYuan / GYun 为本地库（src/WYuan、src/GYun），通过 `pip install -e .` 一并安装。
+
+# 核心
+pyyaml>=6.0
+
+# 热插拔（可选）：未安装时 Qxia 自动使用内置 asyncio 轮询监听，功能一致
+watchdog>=3.0
+
+# GYun.LLM 异步 HTTP 依赖
+httpx>=0.24

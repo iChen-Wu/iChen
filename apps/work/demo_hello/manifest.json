@@ -1,0 +1,7 @@
+{
+  "name": "你好",
+  "id": "demo.hello",
+  "version": "0.1.0",
+  "description": "初始测试 App：验证盒子规范的最小样例",
+  "icon": "icon.svg"
+}
